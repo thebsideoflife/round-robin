@@ -1,0 +1,35 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "round-robin",
+
+  // Keep this within ~a few months of your Wrangler version.
+  // Must be >= 2025-04-01 so that `process.env` is auto-populated from vars
+  // and secrets — the whole app reads config that way (client.server.ts,
+  // auth-middleware.ts, transcribe.functions.ts, security-headers.ts).
+  "compatibility_date": "2026-08-03",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Nitro (configured in vite.config.ts, cloudflare-module target)
+  // emits the SSR entry here and the client bundle into .output/public.
+  // Verify with `ls .output` after your first `npm run build` — if your build
+  // writes somewhere else, update both paths and nothing else changes.
+  "main": ".output/server/index.mjs",
+
+  "assets": {
+    "directory": ".output/public"
+    // Intentionally NO `not_found_handling`. This app is server-rendered, not
+    // an SPA shell: unmatched paths must reach the Worker so TanStack Start can
+    // render the route (and so /today, /insights etc. work on a cold load).
+  },
+
+  "observability": {
+    "enabled": true
+  },
+
+  // Runtime, non-secret config. Secrets go in via `wrangler secret put` —
+  // never here, this file is committed.
+  "vars": {
+    // CSP starts in Report-Only. Flip to "1" once you've watched a release.
+    "CSP_ENFORCE": "0"
+  }
+}

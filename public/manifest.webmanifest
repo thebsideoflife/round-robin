@@ -1,0 +1,67 @@
+{
+  "name": "Round Robin",
+  "short_name": "Round Robin",
+  "description": "Ambulatory Operational Intelligence \u2014 leadership rounding, action items and escalation.",
+  "id": "/today",
+  "start_url": "/today?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "orientation": "portrait",
+  "background_color": "#EFF7F8",
+  "theme_color": "#EFF7F8",
+  "categories": [
+    "business",
+    "healthcare",
+    "productivity"
+  ],
+  "icons": [
+    {
+      "src": "/brand/round-robin-mark.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start a round",
+      "short_name": "New round",
+      "url": "/rounds/new?source=shortcut",
+      "description": "Open the rounding composer with voice capture ready"
+    },
+    {
+      "name": "My overdue work",
+      "short_name": "Overdue",
+      "url": "/tasks?filter=Overdue",
+      "description": "Action items past their due date"
+    }
+  ]
+}

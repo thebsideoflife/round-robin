@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Offline — Round Robin</title>
+    <style>
+      :root { color-scheme: light dark; }
+      body {
+        margin: 0; min-height: 100dvh; display: grid; place-items: center;
+        padding: 2rem env(safe-area-inset-right) 2rem env(safe-area-inset-left);
+        font: 16px/1.5 "Inter Tight", ui-sans-serif, system-ui, sans-serif;
+        background: #EFF7F8; color: #37454D; text-align: center;
+      }
+      @media (prefers-color-scheme: dark) { body { background: #1B2529; color: #f0f2f7; } }
+      .mark { width: 84px; height: 84px; margin: 0 auto 1.25rem; background-image: url("/brand/round-robin-mark.svg"); background-size: contain; background-repeat: no-repeat; background-position: center; }
+      h1 { font-size: 1.25rem; margin: 0 0 .5rem; }
+      p { margin: 0 0 1.5rem; opacity: .7; max-width: 34ch; }
+      button {
+        font: inherit; font-weight: 600; border: 0; border-radius: 12px; padding: .75rem 1.5rem;
+        background: #2F8498; color: #fff; min-height: 44px;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="mark" role="img" aria-label="Round Robin"></div>
+      <h1>You're offline</h1>
+      <p>
+        Rounding data is only shown when we can confirm it's current, so nothing is
+        displayed from cache. Reconnect and try again.
+      </p>
+      <button onclick="location.reload()">Retry</button>
+    </div>
+  </body>
+</html>

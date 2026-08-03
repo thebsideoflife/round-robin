@@ -1,0 +1,29 @@
+# Cloudflare Workers static-assets headers.
+#
+# Assets are served by the platform *before* the Worker runs, so
+# src/lib/security-headers.ts never sees them. These rules cover that gap.
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+
+# The service worker must never be cached, or devices stay pinned to an old
+# build and the whole "push an update to the field" story breaks.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+  Service-Worker-Allowed: /
+
+/manifest.webmanifest
+  Cache-Control: public, max-age=3600
+  Content-Type: application/manifest+json
+
+/offline.html
+  Cache-Control: no-cache
+
+# Content-hashed build output is safe to cache hard.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/_build/*
+  Cache-Control: public, max-age=31536000, immutable
