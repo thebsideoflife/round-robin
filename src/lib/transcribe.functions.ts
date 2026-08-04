@@ -135,6 +135,58 @@ async function viaWhisper(
 }
 
 /**
+ * Cloudflare Workers AI — Whisper, hosted on infrastructure you already use.
+ *
+ * Preferred path: no extra vendor, no extra billing relationship, and the
+ * model is open-source Whisper rather than a proprietary API. Called over REST
+ * rather than the `env.AI` binding because server functions here read config
+ * from process.env, and REST keeps that consistent.
+ *
+ * $0.00051 per audio minute — a three-minute round note costs about a
+ * sixth of a cent.
+ */
+async function viaWorkersAI(
+  base64: string,
+  accountId: string,
+  token: string,
+  model: string,
+): Promise<Result> {
+  const res = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${model}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ audio: base64 }),
+    },
+  );
+
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    console.error("[transcribe] workers-ai returned", res.status, detail.slice(0, 400));
+    if (res.status === 401 || res.status === 403)
+      return { error: "The Cloudflare AI token was rejected. Check CF_AI_TOKEN." };
+    if (res.status === 429)
+      return { error: "Transcription is rate limited. Try again in a moment." };
+    return { error: `Transcription failed (${res.status}).` };
+  }
+
+  const json = (await res.json()) as {
+    success?: boolean;
+    result?: { text?: string };
+    errors?: { message?: string }[];
+  };
+  if (json.success === false) {
+    const msg = json.errors?.[0]?.message ?? "unknown error";
+    console.error("[transcribe] workers-ai error:", msg);
+    return { error: `Transcription failed: ${msg}` };
+  }
+  return { text: (json.result?.text ?? "").trim() };
+}
+
+/**
  * Maps a browser MIME type to the short format name the chat endpoint expects.
  *
  * Gemini documents wav, mp3, aiff, aac, ogg and flac. MediaRecorder gives us
@@ -230,9 +282,11 @@ export const transcribeVoiceNote = createServerFn({ method: "POST" })
 
     console.info(`[transcribe] user=${context.userId} bytes=${bytes.byteLength} type=${mimeType}`);
 
-    // Whisper is the primary path. Gemini's audio understanding rejects the
-    // webm/opus container Chrome's MediaRecorder produces, so a purpose-built
-    // speech-to-text endpoint is both more reliable and considerably faster.
+    // Provider order, most specific first. Gemini is last because its audio
+    // understanding rejects the webm/opus container Chrome produces.
+    const cfAccount = process.env.CF_ACCOUNT_ID;
+    const cfToken = process.env.CF_AI_TOKEN;
+    const cfModel = process.env.CF_WHISPER_MODEL ?? "@cf/openai/whisper-large-v3-turbo";
     const whisperKey = process.env.WHISPER_API_KEY ?? process.env.OPENAI_API_KEY;
     const whisperBase = process.env.WHISPER_BASE_URL ?? "https://api.openai.com/v1";
     const whisperModel = process.env.WHISPER_MODEL ?? "whisper-1";
@@ -242,8 +296,13 @@ export const transcribeVoiceNote = createServerFn({ method: "POST" })
     const chatModel = process.env.AI_AUDIO_MODEL ?? process.env.AI_MODEL ?? "gemini-3-flash-preview";
 
     try {
+      // 1. An explicitly configured Whisper-compatible endpoint wins.
       if (whisperKey) {
         return await viaWhisper(bytes, mimeType, whisperBase, whisperKey, whisperModel);
+      }
+      // 2. Cloudflare Workers AI — same open-source Whisper, no new vendor.
+      if (cfAccount && cfToken) {
+        return await viaWorkersAI(data.audio, cfAccount, cfToken, cfModel);
       }
       if (chatKey) {
         return await viaGateway(data.audio, mimeType, chatKey, chatBase, chatModel);

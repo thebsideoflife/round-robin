@@ -217,6 +217,22 @@ function normalizeExtraction(extraction: Extraction): Extraction {
   };
 }
 
+/**
+ * Hard ceiling on any single AI call.
+ *
+ * Without one, a slow provider response leaves the Worker invocation hanging
+ * until the platform kills it — and because the kill is external, the catch
+ * block never runs, so the report row sits on "processing" forever with no
+ * error to show. A timeout converts that into a visible failure.
+ */
+const AI_TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS ?? 75_000);
+
+function timeoutSignal(ms: number): { signal: AbortSignal; cancel: () => void } {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  return { signal: controller.signal, cancel: () => clearTimeout(timer) };
+}
+
 const EXTRACTION_INSTRUCTIONS = `Extract every number from this Press Ganey Site Scorecard into the JSON schema.
 
 The document has a fixed layout. Work through it table by table.
@@ -331,28 +347,39 @@ async function extractScorecardFromPdf(
 
   console.info(`[px] extracting via ${pdfText ? "text layer" : "vision"}`);
 
-  const response = await fetch(`${config.baseURL.replace(/\/$/, "")}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${config.apiKey}`,
-    },
-    body: JSON.stringify({
-      model: VISION_MODEL,
-      response_format: { type: "json_object" },
-      messages: [
-        {
-          role: "system",
-          content:
-            "You are a deterministic parser for one fixed Press Ganey Site Scorecard PDF template. Read the PDF itself; do not infer, estimate, or invent data. Return only JSON.",
-        },
-        {
-          role: "user",
-          content: userContent,
-        },
-      ],
-    }),
-  });
+  const { signal, cancel } = timeoutSignal(AI_TIMEOUT_MS);
+  let response: Response;
+  try {
+    response = await fetch(`${config.baseURL.replace(/\/$/, "")}/chat/completions`, {
+      signal,
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${config.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: VISION_MODEL,
+        response_format: { type: "json_object" },
+        messages: [
+          {
+            role: "system",
+            content:
+              "You are a deterministic parser for one fixed Press Ganey Site Scorecard PDF template. Read only what is present; do not infer, estimate, or invent data. Return only JSON.",
+          },
+          { role: "user", content: userContent },
+        ],
+      }),
+    });
+  } catch (error) {
+    if ((error as { name?: string })?.name === "AbortError") {
+      throw new Error(
+        `The AI provider didn't respond within ${Math.round(AI_TIMEOUT_MS / 1000)}s while reading the PDF. Try again, or set AI_TIMEOUT_MS higher.`,
+      );
+    }
+    throw error;
+  } finally {
+    cancel();
+  }
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -559,20 +586,24 @@ EVERY ACTION MUST
 
       let narrative: Narrative;
       try {
+        const nt = timeoutSignal(AI_TIMEOUT_MS);
         const narrativeRes = await generateText({
           model,
           prompt: narrativePrompt,
           output: Output.object({ schema: NarrativeSchema }),
-        });
+          abortSignal: nt.signal,
+        }).finally(nt.cancel);
         narrative = (narrativeRes as unknown as { output: Narrative }).output;
       } catch (err) {
         console.error("Structured narrative failed, retrying in JSON mode:", err);
+        const rt = timeoutSignal(AI_TIMEOUT_MS);
         const raw = await generateText({
           model,
+          abortSignal: rt.signal,
           prompt:
             narrativePrompt +
             "\n\nReturn ONLY a JSON object (no markdown, no commentary) with this shape: { exec_summary: string, insights: { drivers, focus_this_month, risk_if_no_action }, opportunities: [{ title, goal, drivers: string[], actions: [{description, owner_role}], timeline_30, timeline_60, timeline_90 }], coaching: [{ provider_name, gap_summary, shadow_recommendation, scripts: string[], checkpoints: string[] }] }",
-        });
+        }).finally(rt.cancel);
         const text = raw.text ?? "";
         const start = text.search(/[{[]/);
         const end = text.lastIndexOf("}");
