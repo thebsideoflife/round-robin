@@ -35,3 +35,5 @@ rather than duplicating, so you can correct the spreadsheet and run it again.
 
 People aren't created as accounts with passwords. When someone signs up with the email in
 the sheet, the existing database trigger grants their role automatically — no approval step.
+
+
