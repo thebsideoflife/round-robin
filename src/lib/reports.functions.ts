@@ -4,8 +4,16 @@ import { z } from "zod";
 import { generateText, Output } from "ai";
 import { AI_NOT_CONFIGURED, createAiProvider, getAiConfig } from "./ai-gateway.server";
 
-// PDF extraction needs a vision-capable model. Override with AI_VISION_MODEL.
-const VISION_MODEL = process.env.AI_VISION_MODEL ?? "gpt-4o";
+/**
+ * Model used to parse the scorecard.
+ *
+ * Follows AI_MODEL by default so this can't drift away from whichever provider
+ * is configured — a hardcoded OpenAI name here produced a 404 against Gemini.
+ * Set AI_VISION_MODEL only if you need a different model for scanned PDFs than
+ * for everything else.
+ */
+const VISION_MODEL =
+  process.env.AI_VISION_MODEL ?? process.env.AI_MODEL ?? "gemini-3-flash-preview";
 
 // ---------- Schemas ----------
 const ExtractionSchema = z.object({

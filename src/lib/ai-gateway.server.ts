@@ -8,7 +8,7 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
  *
  *   AI_BASE_URL   default https://api.openai.com/v1
  *   AI_API_KEY    required for AI features (falls back to OPENAI_API_KEY)
- *   AI_MODEL      default gpt-4o-mini
+ *   AI_MODEL      default gemini-3-flash-preview
  *
  * Works unchanged against OpenAI, Azure OpenAI, OpenRouter, Groq, Together,
  * or a self-hosted vLLM — which matters, because whoever you sign a BAA with
