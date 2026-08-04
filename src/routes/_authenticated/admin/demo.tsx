@@ -11,6 +11,7 @@ import {
   clearDemoData,
 } from "@/lib/demo.functions";
 import { toast } from "sonner";
+import { AdminNav } from "@/components/admin-nav";
 
 export const Route = createFileRoute("/_authenticated/admin/demo")({
   head: () => ({
@@ -71,7 +72,8 @@ function DemoEnvPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      <AdminNav />
       <SectionHeading
         title="Demo environment"
         description="Load a realistic, fully-populated organization so every dashboard, escalation, theme and win is visible — then reset it when you're done."

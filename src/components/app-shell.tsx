@@ -7,11 +7,12 @@ import {
   ListTodo,
   LogOut,
   Mic,
+  Database,
   Settings2,
   Users,
   type LucideIcon,
 } from "lucide-react";
-import { type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -30,6 +31,7 @@ import { isOpenStatus, isOverdue } from "@/lib/domain/permissions";
 import { ViewAsBanner, ViewAsSwitcher } from "@/components/view-as-switcher";
 import { InstallPrompt, UpdateBanner } from "@/components/pwa";
 import { DemoBanner } from "@/components/demo-banner";
+import { RobinChat, RobinLauncher } from "@/components/robin-chat";
 import { BrandLine, Mark } from "@/components/brand";
 
 /**
@@ -45,6 +47,11 @@ interface NavItem {
   /** Badge selector, evaluated against the current scope. */
   badge?: "overdue";
 }
+
+const ADMIN_NAV = [
+  { to: "/admin/users", label: "People & access", icon: Users },
+  { to: "/admin/demo", label: "Demo data", icon: Database },
+] as const;
 
 const NAV: NavItem[] = [
   { to: "/today", label: "Today", icon: Home },
@@ -143,10 +150,11 @@ function RoundFab() {
 /* Desktop rail                                                        */
 /* ------------------------------------------------------------------ */
 
-function DesktopRail() {
+function DesktopRail({ onAskRobin }: { onAskRobin: () => void }) {
   const isActive = useIsActive();
   const badges = useBadges();
-  const { realUser, scope } = useStore();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const { realUser, scope, isAdmin } = useStore();
 
   return (
     <aside className="fixed inset-y-0 start-0 z-30 hidden w-60 flex-col gap-6 border-e border-sidebar-border bg-sidebar p-4 lg:flex">
@@ -193,6 +201,33 @@ function DesktopRail() {
           Start a round
         </Link>
       </Button>
+      <Button variant="outline" className="w-full justify-start gap-2.5" onClick={onAskRobin}>
+        <Mark size={22} />
+        Ask Robin
+      </Button>
+
+      {isAdmin ? (
+        <nav aria-label="Admin" className="flex flex-col gap-1">
+          <span className="px-3 pt-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+            Admin
+          </span>
+          {ADMIN_NAV.map(({ to, label, icon: Icon }) => (
+            <Link
+              key={to}
+              to={to}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                pathname.startsWith(to)
+                  ? "bg-primary text-primary-foreground"
+                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent",
+              )}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       <div className="mt-auto rounded-lg bg-sidebar-accent p-3">
         <p className="truncate text-sm font-medium">{realUser.name || "—"}</p>
@@ -230,7 +265,7 @@ const isDetail = (p: string) =>
 
 function AppBar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { realUser, currentUser } = useStore();
+  const { realUser, currentUser, isAdmin } = useStore();
   const navigate = useNavigate();
   const detail = isDetail(pathname);
 
@@ -256,6 +291,19 @@ function AppBar() {
         </h1>
 
         <ViewAsSwitcher />
+
+        {/* Admin is a destination, not a hidden menu item. */}
+        {isAdmin ? (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="tap-target shrink-0"
+            aria-label="Admin settings"
+            onClick={() => navigate({ to: "/admin/users" })}
+          >
+            <Settings2 className="h-5 w-5" />
+          </Button>
+        ) : null}
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -283,16 +331,20 @@ function AppBar() {
               </p>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {realUser.role === "cao" ? (
+            {isAdmin ? (
               <>
+                <DropdownMenuLabel className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">
+                  Admin
+                </DropdownMenuLabel>
                 <DropdownMenuItem onSelect={() => navigate({ to: "/admin/users" })}>
                   <Users className="me-2 h-4 w-4" />
                   People &amp; access
                 </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => navigate({ to: "/admin/demo" })}>
-                  <Settings2 className="me-2 h-4 w-4" />
+                  <Database className="me-2 h-4 w-4" />
                   Demo data
                 </DropdownMenuItem>
+                <DropdownMenuSeparator />
               </>
             ) : null}
             <DropdownMenuItem
@@ -314,9 +366,11 @@ function AppBar() {
 /* ------------------------------------------------------------------ */
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const [robinOpen, setRobinOpen] = useState(false);
+
   return (
     <div className="min-h-dvh-screen bg-background">
-      <DesktopRail />
+      <DesktopRail onAskRobin={() => setRobinOpen(true)} />
       <div className="lg:ps-60">
         <AppBar />
         <DemoBanner />
@@ -328,6 +382,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
       <TabBar />
       <RoundFab />
+      <RobinLauncher onClick={() => setRobinOpen(true)} />
+      <RobinChat open={robinOpen} onOpenChange={setRobinOpen} />
       <InstallPrompt />
     </div>
   );

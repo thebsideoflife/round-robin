@@ -124,8 +124,25 @@ async function viaWhisper(
 }
 
 /**
- * Multimodal chat fallback for endpoints that accept inline audio (Gemini and
- * GPT-4o audio models do). Used only when no Whisper endpoint is configured.
+ * Maps a browser MIME type to the short format name the chat endpoint expects.
+ *
+ * Gemini documents wav, mp3, aiff, aac, ogg and flac. MediaRecorder gives us
+ * webm/opus on Chrome and mp4/aac on iOS Safari, so mp4 is sent as "aac" and
+ * webm is passed through — if webm is rejected, configure a Whisper-compatible
+ * endpoint via WHISPER_BASE_URL, which accepts it natively.
+ */
+function audioFormat(mimeType: string): string {
+  if (mimeType.includes("mp4") || mimeType.includes("m4a") || mimeType.includes("aac")) return "aac";
+  if (mimeType.includes("ogg")) return "ogg";
+  if (mimeType.includes("wav")) return "wav";
+  if (mimeType.includes("mpeg") || mimeType.includes("mp3")) return "mp3";
+  if (mimeType.includes("flac")) return "flac";
+  return "webm";
+}
+
+/**
+ * Multimodal chat fallback for endpoints that accept inline audio. This is the
+ * path Gemini uses, since Gemini has no /audio/transcriptions route.
  */
 async function viaGateway(
   base64: string,
@@ -148,8 +165,8 @@ async function viaGateway(
           role: "user",
           content: [
             { type: "text", text: PROMPT },
-            // Gemini's inline-data shape, passed through by the gateway.
-            { type: "input_audio", input_audio: { data: base64, format: mimeType } },
+            // Gemini wants a short format name ("wav", "aac"), not a MIME type.
+            { type: "input_audio", input_audio: { data: base64, format: audioFormat(mimeType) } },
           ],
         },
       ],
@@ -202,12 +219,16 @@ export const transcribeVoiceNote = createServerFn({ method: "POST" })
 
     console.info(`[transcribe] user=${context.userId} bytes=${bytes.byteLength} type=${mimeType}`);
 
-    const whisperKey = process.env.WHISPER_API_KEY ?? process.env.AI_API_KEY ?? process.env.OPENAI_API_KEY;
+    // Only use the Whisper path when an endpoint is explicitly configured —
+    // Gemini has no /audio/transcriptions route, so falling back to AI_API_KEY
+    // here would produce a 404 rather than a transcript.
+    const whisperKey = process.env.WHISPER_API_KEY;
     const whisperBase = process.env.WHISPER_BASE_URL ?? "https://api.openai.com/v1";
     const whisperModel = process.env.WHISPER_MODEL ?? "whisper-1";
-    const chatKey = process.env.AI_API_KEY ?? process.env.OPENAI_API_KEY;
-    const chatBase = process.env.AI_BASE_URL ?? "https://api.openai.com/v1";
-    const chatModel = process.env.AI_AUDIO_MODEL ?? "gpt-4o-mini-audio-preview";
+    const chatKey = process.env.AI_API_KEY ?? process.env.GEMINI_API_KEY ?? process.env.OPENAI_API_KEY;
+    const chatBase =
+      process.env.AI_BASE_URL ?? "https://generativelanguage.googleapis.com/v1beta/openai/";
+    const chatModel = process.env.AI_AUDIO_MODEL ?? process.env.AI_MODEL ?? "gemini-3-flash-preview";
 
     try {
       if (whisperKey) {

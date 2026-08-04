@@ -44,6 +44,8 @@ interface StoreValue {
   viewAsId: string | null;
   setViewAsId: (id: string | null) => void;
   canViewAs: boolean;
+  /** True when the signed-in account holds the admin role. */
+  isAdmin: boolean;
   isViewingAs: boolean;
   scope: Scope;
   /** Org graph for the loaded dataset (top-down rollup + bottom-up routing). */
@@ -106,7 +108,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   };
 
   const [viewAsId, setViewAsId] = useState<string | null>(null);
-  const canViewAs = realUser.role === "cao";
+  // Admin is its own role. A CAO sees every clinic but doesn't necessarily
+  // administer accounts, so the two gates are kept separate.
+  const isAdmin = query.data?.isAdmin === true;
+  const canViewAs = isAdmin || realUser.role === "cao";
   const viewAsOptions = useMemo(
     () =>
       canViewAs
@@ -185,6 +190,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     viewAsId: canViewAs ? viewAsId : null,
     setViewAsId,
     canViewAs,
+    isAdmin,
     isViewingAs: !!viewAs,
     scope,
     graph: scope.graph,

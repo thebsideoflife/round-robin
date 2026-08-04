@@ -58,6 +58,20 @@ detail loads before PHI lands.
 
 ---
 
+### 6. Robin can read round notes
+
+`ROBIN_READ_NOTES` defaults to `1`, which lets the assistant quote what staff
+actually said in a rounding conversation. That text is sent to Gemini.
+
+Everything else Robin sees is numeric — counts, scores, clinic names. Set
+`ROBIN_READ_NOTES=0` to restrict it to those and keep free text out of the
+model entirely. Do that before this system holds anything PHI-adjacent, or
+confirm your Gemini terms cover it.
+
+Robin is read-only by design: it has no tool that writes. It also loads data
+through the same RLS-scoped query the app uses, so it can never surface a
+clinic the asker isn't entitled to see.
+
 ## Before you touch PHI
 
 - [ ] **BAAs**: Supabase, your hosting provider, and whichever transcription

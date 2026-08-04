@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Check, Loader2, Mail, Plus, Search, ShieldCheck, X } from "lucide-react";
+import { Check, KeyRound, Loader2, Mail, Plus, Search, ShieldCheck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,12 +17,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   EmptyState,
   FilterRail,
@@ -37,11 +37,16 @@ import {
   listDirectory,
   listInvitations,
   revokeInvitation,
+  sendPasswordReset,
   setClinicAssignment,
+  setTemporaryPassword,
   setUserRole,
+  updateProfile,
   type AppRole,
   type DirectoryUser,
 } from "@/lib/admin.functions";
+import { AvatarUpload, PersonAvatar } from "@/components/avatar-upload";
+import { AdminNav } from "@/components/admin-nav";
 import { ROLE_LABELS } from "@/data/types";
 
 export const Route = createFileRoute("/_authenticated/admin/users")({
@@ -61,7 +66,7 @@ const ROLES: AppRole[] = ["admin", "cao", "executive_director", "director", "man
 const CLINIC_ROLES = ["manager", "director", "executive_director"] as const;
 
 const ROLE_COPY: Record<AppRole, string> = {
-  admin: "Full access, including this screen",
+  admin: "Everything, including this screen and other people's passwords",
   cao: "Sees every clinic in the organization",
   executive_director: "Sees their division",
   director: "Sees the clinics under their managers",
@@ -132,6 +137,7 @@ function AdminUsersPage() {
 
   return (
     <div className="space-y-5">
+      <AdminNav />
       <PageHeader
         title="People & access"
         description="Invite people, set what they can see, and assign them to clinics."
@@ -183,6 +189,7 @@ function AdminUsersPage() {
           {people.map((u) => (
             <Row
               key={u.userId}
+              leading={<PersonAvatar name={u.fullName || u.email} src={u.avatarUrl} size={40} />}
               title={u.fullName || u.email}
               subtitle={`${u.email}${u.title ? ` · ${u.title}` : ""}${
                 u.clinicIds.length ? ` · ${u.clinicIds.length} clinic${u.clinicIds.length === 1 ? "" : "s"}` : ""
@@ -232,8 +239,8 @@ function AdminUsersPage() {
         </section>
       ) : null}
 
-      <InviteSheet open={inviteOpen} onOpenChange={setInviteOpen} onDone={refresh} />
-      <PersonSheet
+      <InviteDialog open={inviteOpen} onOpenChange={setInviteOpen} onDone={refresh} />
+      <PersonDialog
         person={selected}
         clinics={scope.clinics}
         onOpenChange={(o) => !o && setSelected(null)}
@@ -268,7 +275,7 @@ function RevokeButton({ id, onDone }: { id: string; onDone: () => void }) {
   );
 }
 
-function InviteSheet({
+function InviteDialog({
   open,
   onOpenChange,
   onDone,
@@ -297,16 +304,16 @@ function InviteSheet({
   });
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0 rounded-t-3xl p-5 sm:max-w-lg">
-        <SheetHeader className="p-0">
-          <SheetTitle>Invite someone</SheetTitle>
-          <SheetDescription>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[88dvh] max-w-lg overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Invite someone</DialogTitle>
+          <DialogDescription>
             They'll get access the moment they create an account with this email. No approval step.
-          </SheetDescription>
-        </SheetHeader>
+          </DialogDescription>
+        </DialogHeader>
 
-        <div className="mt-5 space-y-4">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="invite-email">Email</Label>
             <Input
@@ -359,12 +366,12 @@ function InviteSheet({
             Send invite
           </Button>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function PersonSheet({
+function PersonDialog({
   person,
   clinics,
   onOpenChange,
@@ -377,7 +384,27 @@ function PersonSheet({
 }) {
   const runRole = useServerFn(setUserRole);
   const runAssign = useServerFn(setClinicAssignment);
+  const runProfile = useServerFn(updateProfile);
+  const runTempPassword = useServerFn(setTemporaryPassword);
+  const runReset = useServerFn(sendPasswordReset);
+
   const [clinicRole, setClinicRole] = useState<(typeof CLINIC_ROLES)[number]>("manager");
+  const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  const [tempPw, setTempPw] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [avatar, setAvatar] = useState<string | null>(null);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+
+  // Re-seed the form when a different person is opened.
+  if (person && loadedFor !== person.userId) {
+    setLoadedFor(person.userId);
+    setName(person.fullName);
+    setTitle(person.title);
+    setAvatar(person.avatarUrl);
+    setTempPw("");
+    setShowPw(false);
+  }
 
   const roleM = useMutation({
     mutationFn: (role: AppRole) => runRole({ data: { userId: person!.userId, role } }),
@@ -388,15 +415,20 @@ function PersonSheet({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't change the role"),
   });
 
+  const profileM = useMutation({
+    mutationFn: (patch: { fullName?: string; title?: string; avatarUrl?: string }) =>
+      runProfile({ data: { userId: person!.userId, ...patch } }),
+    onSuccess: () => {
+      toast.success("Profile saved");
+      onDone();
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't save the profile"),
+  });
+
   const assignM = useMutation({
     mutationFn: (v: { clinicId: string; attach: boolean }) =>
       runAssign({
-        data: {
-          userId: person!.userId,
-          clinicId: v.clinicId,
-          role: clinicRole,
-          attach: v.attach,
-        },
+        data: { userId: person!.userId, clinicId: v.clinicId, role: clinicRole, attach: v.attach },
       }),
     onSuccess: () => {
       toast.success("Assignment updated");
@@ -405,19 +437,121 @@ function PersonSheet({
     onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't update the assignment"),
   });
 
+  const tempPwM = useMutation({
+    mutationFn: () => runTempPassword({ data: { userId: person!.userId, password: tempPw } }),
+    onSuccess: () => {
+      toast.success("Temporary password set", {
+        description: "They'll be asked to change it when they sign in.",
+      });
+      setShowPw(false);
+      setTempPw("");
+    },
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't set the password"),
+  });
+
+  const resetM = useMutation({
+    mutationFn: () =>
+      runReset({
+        data: {
+          email: person!.email,
+          redirectTo: `${window.location.origin}/reset-password`,
+        },
+      }),
+    onSuccess: () => toast.success(`Reset link sent to ${person!.email}`),
+    onError: (e) => toast.error(e instanceof Error ? e.message : "Couldn't send the reset email"),
+  });
+
   if (!person) return null;
   const current = person.roles[0];
+  const dirty = name !== person.fullName || title !== person.title;
 
   return (
-    <Sheet open={!!person} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="gap-0 overflow-y-auto rounded-t-3xl p-5 sm:max-w-lg">
-        <SheetHeader className="p-0">
-          <SheetTitle>{person.fullName || person.email}</SheetTitle>
-          <SheetDescription>{person.email}</SheetDescription>
-        </SheetHeader>
+    <Dialog open={!!person} onOpenChange={onOpenChange}>
+      <DialogContent className="max-h-[90dvh] max-w-2xl gap-0 overflow-y-auto p-0">
+        <DialogHeader className="sticky top-0 z-10 flex-row items-center gap-3 border-b border-border bg-popover p-5">
+          <PersonAvatar name={name || person.email} src={avatar} size={44} />
+          <div className="min-w-0 flex-1 text-start">
+            <DialogTitle className="truncate text-[1.0625rem]">
+              {person.fullName || person.email}
+            </DialogTitle>
+            <DialogDescription className="truncate">{person.email}</DialogDescription>
+          </div>
+        </DialogHeader>
 
-        <div className="mt-5 space-y-6">
-          <section className="space-y-2">
+        {/* A jump bar, because everything below used to be lost under a fold. */}
+        <div className="scroll-rail border-b border-border px-5 py-3">
+          {[
+            ["#sec-profile", "Profile"],
+            ["#sec-role", "Role"],
+            ["#sec-password", "Password"],
+            ["#sec-clinics", "Clinics"],
+          ].map(([href, label]) => (
+            <a
+              key={href}
+              href={href}
+              onClick={(e) => {
+                e.preventDefault();
+                document
+                  .querySelector(href)
+                  ?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="press flex h-9 items-center rounded-full border border-border bg-card px-3.5 text-sm font-medium whitespace-nowrap text-muted-foreground hover:bg-accent/50"
+            >
+              {label}
+            </a>
+          ))}
+        </div>
+
+        <div className="space-y-8 p-5">
+          {/* ---------------- Profile ---------------- */}
+          <section id="sec-profile" className="scroll-mt-24 space-y-4">
+            <Label>Photo</Label>
+            <AvatarUpload
+              userId={person.userId}
+              name={name || person.email}
+              currentUrl={avatar}
+              onChange={async (url) => {
+                setAvatar(url);
+                await profileM.mutateAsync({ avatarUrl: url ?? "" });
+              }}
+            />
+
+            <div className="space-y-2">
+              <Label htmlFor="p-name">Display name</Label>
+              <Input
+                id="p-name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="h-12 text-base"
+                maxLength={120}
+                placeholder="Dana Whitfield"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="p-title">Title</Label>
+              <Input
+                id="p-title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="h-12 text-base"
+                maxLength={160}
+                placeholder="Practice Manager, Lakeshore Family Medicine"
+              />
+            </div>
+            {dirty ? (
+              <Button
+                className="w-full"
+                disabled={profileM.isPending}
+                onClick={() => profileM.mutate({ fullName: name.trim(), title: title.trim() })}
+              >
+                {profileM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Save changes
+              </Button>
+            ) : null}
+          </section>
+
+          {/* ---------------- Role ---------------- */}
+          <section id="sec-role" className="scroll-mt-24 space-y-2">
             <Label>Role</Label>
             <div className="space-y-2">
               {ROLES.map((r) => (
@@ -447,7 +581,78 @@ function PersonSheet({
             </div>
           </section>
 
-          <section className="space-y-3">
+          {/* ---------------- Password ---------------- */}
+          <section id="sec-password" className="scroll-mt-24 space-y-3">
+            <div className="space-y-1">
+              <Label>Password</Label>
+              <p className="text-sm text-muted-foreground">
+                Emailing a reset link is safer — nobody has to say a password out loud.
+              </p>
+            </div>
+
+            <Button
+              variant="outline"
+              className="w-full gap-2"
+              disabled={resetM.isPending}
+              onClick={() => resetM.mutate()}
+            >
+              {resetM.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mail className="h-4 w-4" />
+              )}
+              Email a reset link
+            </Button>
+
+            {showPw ? (
+              <div className="space-y-2 rounded-2xl border border-border p-3.5">
+                <Label htmlFor="p-temp">Temporary password</Label>
+                <Input
+                  id="p-temp"
+                  value={tempPw}
+                  onChange={(e) => setTempPw(e.target.value)}
+                  className="h-12 text-base"
+                  placeholder="At least 10 characters"
+                  autoComplete="off"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This signs them out everywhere and forces a change at next sign-in.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    variant="ghost"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowPw(false);
+                      setTempPw("");
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={tempPw.trim().length < 10 || tempPwM.isPending}
+                    onClick={() => tempPwM.mutate()}
+                  >
+                    {tempPwM.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                    Set it
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                className="w-full gap-2 text-muted-foreground"
+                onClick={() => setShowPw(true)}
+              >
+                <KeyRound className="h-4 w-4" />
+                Set a temporary password instead
+              </Button>
+            )}
+          </section>
+
+          {/* ---------------- Clinics ---------------- */}
+          <section id="sec-clinics" className="scroll-mt-24 space-y-3">
             <div className="space-y-2">
               <Label>Clinics they cover</Label>
               <p className="text-sm text-muted-foreground">
@@ -472,40 +677,41 @@ function PersonSheet({
               </SelectContent>
             </Select>
 
-            <ListCard>
-              {clinics.map((c) => {
-                const on = person.clinicIds.includes(c.id);
-                return (
-                  <Row
-                    key={c.id}
-                    title={c.name}
-                    subtitle={on ? "Assigned" : "Not assigned"}
-                    right={
-                      <Button
-                        size="sm"
-                        variant={on ? "outline" : "default"}
-                        disabled={assignM.isPending}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          assignM.mutate({ clinicId: c.id, attach: !on });
-                        }}
-                      >
-                        {on ? "Remove" : "Add"}
-                      </Button>
-                    }
-                  />
-                );
-              })}
-            </ListCard>
-            {clinics.length === 0 ? (
+            {clinics.length ? (
+              <ListCard>
+                {clinics.map((c) => {
+                  const on = person.clinicIds.includes(c.id);
+                  return (
+                    <Row
+                      key={c.id}
+                      title={c.name}
+                      subtitle={on ? "Assigned" : "Not assigned"}
+                      right={
+                        <Button
+                          size="sm"
+                          variant={on ? "outline" : "default"}
+                          disabled={assignM.isPending}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            assignM.mutate({ clinicId: c.id, attach: !on });
+                          }}
+                        >
+                          {on ? "Remove" : "Add"}
+                        </Button>
+                      }
+                    />
+                  );
+                })}
+              </ListCard>
+            ) : (
               <EmptyState
                 title="No clinics yet"
                 description="Load the demo data or create a clinic first."
               />
-            ) : null}
+            )}
           </section>
         </div>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }

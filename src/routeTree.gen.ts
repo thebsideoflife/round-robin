@@ -9,51 +9,40 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AwaitingApprovalRouteImport } from './routes/awaiting-approval'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as DemoRouteImport } from './routes/demo'
-import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
-import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthenticatedWeeklyRouteImport } from './routes/_authenticated/weekly'
-import { Route as AuthenticatedTodayRouteImport } from './routes/_authenticated/today'
-import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
-import { Route as AuthenticatedTrendsRouteImport } from './routes/_authenticated/trends'
-import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
-import { Route as AuthenticatedEscalationsRouteImport } from './routes/_authenticated/escalations'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AwaitingApprovalRouteImport } from './routes/awaiting-approval'
+import { Route as DemoRouteImport } from './routes/demo'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
-import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
-import { Route as AuthenticatedRoundsIndexRouteImport } from './routes/_authenticated/rounds/index'
-import { Route as AuthenticatedPxIndexRouteImport } from './routes/_authenticated/px/index'
-import { Route as AuthenticatedClinicsIndexRouteImport } from './routes/_authenticated/clinics/index'
-import { Route as AuthenticatedTasksTaskIdRouteImport } from './routes/_authenticated/tasks/$taskId'
-import { Route as AuthenticatedRoundsNewRouteImport } from './routes/_authenticated/rounds/new'
-import { Route as AuthenticatedRoundsRoundIdRouteImport } from './routes/_authenticated/rounds/$roundId'
-import { Route as AuthenticatedPxUploadRouteImport } from './routes/_authenticated/px/upload'
-import { Route as AuthenticatedPxReportIdRouteImport } from './routes/_authenticated/px/$reportId'
-import { Route as AuthenticatedClinicsClinicIdRouteImport } from './routes/_authenticated/clinics/$clinicId'
+import { Route as AuthenticatedEscalationsRouteImport } from './routes/_authenticated/escalations'
+import { Route as AuthenticatedInsightsRouteImport } from './routes/_authenticated/insights'
+import { Route as AuthenticatedRecommendationsRouteImport } from './routes/_authenticated/recommendations'
+import { Route as AuthenticatedTodayRouteImport } from './routes/_authenticated/today'
+import { Route as AuthenticatedTrendsRouteImport } from './routes/_authenticated/trends'
+import { Route as AuthenticatedWeeklyRouteImport } from './routes/_authenticated/weekly'
 import { Route as AuthenticatedAdminDemoRouteImport } from './routes/_authenticated/admin/demo'
 import { Route as AuthenticatedAdminUsersRouteImport } from './routes/_authenticated/admin/users'
+import { Route as AuthenticatedClinicsIndexRouteImport } from './routes/_authenticated/clinics/index'
+import { Route as AuthenticatedClinicsClinicIdRouteImport } from './routes/_authenticated/clinics/$clinicId'
+import { Route as AuthenticatedPxIndexRouteImport } from './routes/_authenticated/px/index'
+import { Route as AuthenticatedPxReportIdRouteImport } from './routes/_authenticated/px/$reportId'
+import { Route as AuthenticatedPxUploadRouteImport } from './routes/_authenticated/px/upload'
+import { Route as AuthenticatedRoundsIndexRouteImport } from './routes/_authenticated/rounds/index'
+import { Route as AuthenticatedRoundsRoundIdRouteImport } from './routes/_authenticated/rounds/$roundId'
+import { Route as AuthenticatedRoundsNewRouteImport } from './routes/_authenticated/rounds/new'
+import { Route as AuthenticatedTasksIndexRouteImport } from './routes/_authenticated/tasks/index'
+import { Route as AuthenticatedTasksTaskIdRouteImport } from './routes/_authenticated/tasks/$taskId'
 
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AwaitingApprovalRoute = AwaitingApprovalRouteImport.update({
-  id: '/awaiting-approval',
-  path: '/awaiting-approval',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemoRoute = DemoRouteImport.update({
-  id: '/demo',
-  path: '/demo',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AcceptInviteRoute = AcceptInviteRouteImport.update({
@@ -61,33 +50,40 @@ const AcceptInviteRoute = AcceptInviteRouteImport.update({
   path: '/accept-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AwaitingApprovalRoute = AwaitingApprovalRouteImport.update({
+  id: '/awaiting-approval',
+  path: '/awaiting-approval',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedWeeklyRoute = AuthenticatedWeeklyRouteImport.update({
-  id: '/weekly',
-  path: '/weekly',
+const DemoRoute = DemoRouteImport.update({
+  id: '/demo',
+  path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedTodayRoute = AuthenticatedTodayRouteImport.update({
-  id: '/today',
-  path: '/today',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
+const AuthenticatedEscalationsRoute =
+  AuthenticatedEscalationsRouteImport.update({
+    id: '/escalations',
+    path: '/escalations',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedInsightsRoute = AuthenticatedInsightsRouteImport.update({
   id: '/insights',
   path: '/insights',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedTrendsRoute = AuthenticatedTrendsRouteImport.update({
-  id: '/trends',
-  path: '/trends',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedRecommendationsRoute =
@@ -96,72 +92,21 @@ const AuthenticatedRecommendationsRoute =
     path: '/recommendations',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedEscalationsRoute =
-  AuthenticatedEscalationsRouteImport.update({
-    id: '/escalations',
-    path: '/escalations',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthenticatedTodayRoute = AuthenticatedTodayRouteImport.update({
+  id: '/today',
+  path: '/today',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedTasksIndexRoute = AuthenticatedTasksIndexRouteImport.update({
-  id: '/tasks/',
-  path: '/tasks/',
+const AuthenticatedTrendsRoute = AuthenticatedTrendsRouteImport.update({
+  id: '/trends',
+  path: '/trends',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedRoundsIndexRoute =
-  AuthenticatedRoundsIndexRouteImport.update({
-    id: '/rounds/',
-    path: '/rounds/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPxIndexRoute = AuthenticatedPxIndexRouteImport.update({
-  id: '/px/',
-  path: '/px/',
+const AuthenticatedWeeklyRoute = AuthenticatedWeeklyRouteImport.update({
+  id: '/weekly',
+  path: '/weekly',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const AuthenticatedClinicsIndexRoute =
-  AuthenticatedClinicsIndexRouteImport.update({
-    id: '/clinics/',
-    path: '/clinics/',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedTasksTaskIdRoute =
-  AuthenticatedTasksTaskIdRouteImport.update({
-    id: '/tasks/$taskId',
-    path: '/tasks/$taskId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedRoundsNewRoute = AuthenticatedRoundsNewRouteImport.update({
-  id: '/rounds/new',
-  path: '/rounds/new',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedRoundsRoundIdRoute =
-  AuthenticatedRoundsRoundIdRouteImport.update({
-    id: '/rounds/$roundId',
-    path: '/rounds/$roundId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedPxUploadRoute = AuthenticatedPxUploadRouteImport.update({
-  id: '/px/upload',
-  path: '/px/upload',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPxReportIdRoute = AuthenticatedPxReportIdRouteImport.update({
-  id: '/px/$reportId',
-  path: '/px/$reportId',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedClinicsClinicIdRoute =
-  AuthenticatedClinicsClinicIdRouteImport.update({
-    id: '/clinics/$clinicId',
-    path: '/clinics/$clinicId',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
 const AuthenticatedAdminDemoRoute = AuthenticatedAdminDemoRouteImport.update({
   id: '/admin/demo',
   path: '/admin/demo',
@@ -172,19 +117,74 @@ const AuthenticatedAdminUsersRoute = AuthenticatedAdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedClinicsIndexRoute =
+  AuthenticatedClinicsIndexRouteImport.update({
+    id: '/clinics/',
+    path: '/clinics/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedClinicsClinicIdRoute =
+  AuthenticatedClinicsClinicIdRouteImport.update({
+    id: '/clinics/$clinicId',
+    path: '/clinics/$clinicId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPxIndexRoute = AuthenticatedPxIndexRouteImport.update({
+  id: '/px/',
+  path: '/px/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPxReportIdRoute = AuthenticatedPxReportIdRouteImport.update({
+  id: '/px/$reportId',
+  path: '/px/$reportId',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPxUploadRoute = AuthenticatedPxUploadRouteImport.update({
+  id: '/px/upload',
+  path: '/px/upload',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRoundsIndexRoute =
+  AuthenticatedRoundsIndexRouteImport.update({
+    id: '/rounds/',
+    path: '/rounds/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRoundsRoundIdRoute =
+  AuthenticatedRoundsRoundIdRouteImport.update({
+    id: '/rounds/$roundId',
+    path: '/rounds/$roundId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRoundsNewRoute = AuthenticatedRoundsNewRouteImport.update({
+  id: '/rounds/new',
+  path: '/rounds/new',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTasksIndexRoute = AuthenticatedTasksIndexRouteImport.update({
+  id: '/tasks/',
+  path: '/tasks/',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedTasksTaskIdRoute =
+  AuthenticatedTasksTaskIdRouteImport.update({
+    id: '/tasks/$taskId',
+    path: '/tasks/$taskId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
-  '/demo': typeof DemoRoute
   '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/demo': typeof DemoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/escalations': typeof AuthenticatedEscalationsRoute
+  '/insights': typeof AuthenticatedInsightsRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/today': typeof AuthenticatedTodayRoute
-  '/insights': typeof AuthenticatedInsightsRoute
   '/trends': typeof AuthenticatedTrendsRoute
   '/weekly': typeof AuthenticatedWeeklyRoute
   '/admin/demo': typeof AuthenticatedAdminDemoRoute
@@ -204,14 +204,14 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
-  '/demo': typeof DemoRoute
   '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/demo': typeof DemoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/escalations': typeof AuthenticatedEscalationsRoute
+  '/insights': typeof AuthenticatedInsightsRoute
   '/recommendations': typeof AuthenticatedRecommendationsRoute
   '/today': typeof AuthenticatedTodayRoute
-  '/insights': typeof AuthenticatedInsightsRoute
   '/trends': typeof AuthenticatedTrendsRoute
   '/weekly': typeof AuthenticatedWeeklyRoute
   '/admin/demo': typeof AuthenticatedAdminDemoRoute
@@ -233,14 +233,14 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/accept-invite': typeof AcceptInviteRoute
   '/auth': typeof AuthRoute
-  '/demo': typeof DemoRoute
   '/awaiting-approval': typeof AwaitingApprovalRoute
+  '/demo': typeof DemoRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/escalations': typeof AuthenticatedEscalationsRoute
+  '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/recommendations': typeof AuthenticatedRecommendationsRoute
   '/_authenticated/today': typeof AuthenticatedTodayRoute
-  '/_authenticated/insights': typeof AuthenticatedInsightsRoute
   '/_authenticated/trends': typeof AuthenticatedTrendsRoute
   '/_authenticated/weekly': typeof AuthenticatedWeeklyRoute
   '/_authenticated/admin/demo': typeof AuthenticatedAdminDemoRoute
@@ -263,13 +263,17 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/auth'
     | '/awaiting-approval'
+    | '/demo'
     | '/reset-password'
     | '/dashboard'
     | '/escalations'
+    | '/insights'
     | '/recommendations'
+    | '/today'
     | '/trends'
     | '/weekly'
     | '/admin/demo'
+    | '/admin/users'
     | '/clinics/$clinicId'
     | '/px/$reportId'
     | '/px/upload'
@@ -286,13 +290,17 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/auth'
     | '/awaiting-approval'
+    | '/demo'
     | '/reset-password'
     | '/dashboard'
     | '/escalations'
+    | '/insights'
     | '/recommendations'
+    | '/today'
     | '/trends'
     | '/weekly'
     | '/admin/demo'
+    | '/admin/users'
     | '/clinics/$clinicId'
     | '/px/$reportId'
     | '/px/upload'
@@ -310,13 +318,17 @@ export interface FileRouteTypes {
     | '/accept-invite'
     | '/auth'
     | '/awaiting-approval'
+    | '/demo'
     | '/reset-password'
     | '/_authenticated/dashboard'
     | '/_authenticated/escalations'
+    | '/_authenticated/insights'
     | '/_authenticated/recommendations'
+    | '/_authenticated/today'
     | '/_authenticated/trends'
     | '/_authenticated/weekly'
     | '/_authenticated/admin/demo'
+    | '/_authenticated/admin/users'
     | '/_authenticated/clinics/$clinicId'
     | '/_authenticated/px/$reportId'
     | '/_authenticated/px/upload'
@@ -334,46 +346,18 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AcceptInviteRoute: typeof AcceptInviteRoute
   AuthRoute: typeof AuthRoute
-  DemoRoute: typeof DemoRoute
   AwaitingApprovalRoute: typeof AwaitingApprovalRoute
+  DemoRoute: typeof DemoRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/awaiting-approval': {
-      id: '/awaiting-approval'
-      path: '/awaiting-approval'
-      fullPath: '/awaiting-approval'
-      preLoaderRoute: typeof AwaitingApprovalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demo': {
-      id: '/demo'
-      path: '/demo'
-      fullPath: '/demo'
-      preLoaderRoute: typeof DemoRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/accept-invite': {
-      id: '/accept-invite'
-      path: '/accept-invite'
-      fullPath: '/accept-invite'
-      preLoaderRoute: typeof AcceptInviteRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated': {
@@ -383,46 +367,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/accept-invite': {
+      id: '/accept-invite'
+      path: '/accept-invite'
+      fullPath: '/accept-invite'
+      preLoaderRoute: typeof AcceptInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/weekly': {
-      id: '/_authenticated/weekly'
-      path: '/weekly'
-      fullPath: '/weekly'
-      preLoaderRoute: typeof AuthenticatedWeeklyRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/today': {
-      id: '/_authenticated/today'
-      path: '/today'
-      fullPath: '/today'
-      preLoaderRoute: typeof AuthenticatedTodayRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/awaiting-approval': {
+      id: '/awaiting-approval'
+      path: '/awaiting-approval'
+      fullPath: '/awaiting-approval'
+      preLoaderRoute: typeof AwaitingApprovalRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/insights': {
-      id: '/_authenticated/insights'
-      path: '/insights'
-      fullPath: '/insights'
-      preLoaderRoute: typeof AuthenticatedInsightsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/demo': {
+      id: '/demo'
+      path: '/demo'
+      fullPath: '/demo'
+      preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/trends': {
-      id: '/_authenticated/trends'
-      path: '/trends'
-      fullPath: '/trends'
-      preLoaderRoute: typeof AuthenticatedTrendsRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_authenticated/recommendations': {
-      id: '/_authenticated/recommendations'
-      path: '/recommendations'
-      fullPath: '/recommendations'
-      preLoaderRoute: typeof AuthenticatedRecommendationsRouteImport
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/escalations': {
@@ -432,81 +416,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedEscalationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/dashboard': {
-      id: '/_authenticated/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+    '/_authenticated/insights': {
+      id: '/_authenticated/insights'
+      path: '/insights'
+      fullPath: '/insights'
+      preLoaderRoute: typeof AuthenticatedInsightsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/tasks/': {
-      id: '/_authenticated/tasks/'
-      path: '/tasks'
-      fullPath: '/tasks/'
-      preLoaderRoute: typeof AuthenticatedTasksIndexRouteImport
+    '/_authenticated/recommendations': {
+      id: '/_authenticated/recommendations'
+      path: '/recommendations'
+      fullPath: '/recommendations'
+      preLoaderRoute: typeof AuthenticatedRecommendationsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/rounds/': {
-      id: '/_authenticated/rounds/'
-      path: '/rounds'
-      fullPath: '/rounds/'
-      preLoaderRoute: typeof AuthenticatedRoundsIndexRouteImport
+    '/_authenticated/today': {
+      id: '/_authenticated/today'
+      path: '/today'
+      fullPath: '/today'
+      preLoaderRoute: typeof AuthenticatedTodayRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/px/': {
-      id: '/_authenticated/px/'
-      path: '/px'
-      fullPath: '/px/'
-      preLoaderRoute: typeof AuthenticatedPxIndexRouteImport
+    '/_authenticated/trends': {
+      id: '/_authenticated/trends'
+      path: '/trends'
+      fullPath: '/trends'
+      preLoaderRoute: typeof AuthenticatedTrendsRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/clinics/': {
-      id: '/_authenticated/clinics/'
-      path: '/clinics'
-      fullPath: '/clinics/'
-      preLoaderRoute: typeof AuthenticatedClinicsIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/tasks/$taskId': {
-      id: '/_authenticated/tasks/$taskId'
-      path: '/tasks/$taskId'
-      fullPath: '/tasks/$taskId'
-      preLoaderRoute: typeof AuthenticatedTasksTaskIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/rounds/new': {
-      id: '/_authenticated/rounds/new'
-      path: '/rounds/new'
-      fullPath: '/rounds/new'
-      preLoaderRoute: typeof AuthenticatedRoundsNewRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/rounds/$roundId': {
-      id: '/_authenticated/rounds/$roundId'
-      path: '/rounds/$roundId'
-      fullPath: '/rounds/$roundId'
-      preLoaderRoute: typeof AuthenticatedRoundsRoundIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/px/upload': {
-      id: '/_authenticated/px/upload'
-      path: '/px/upload'
-      fullPath: '/px/upload'
-      preLoaderRoute: typeof AuthenticatedPxUploadRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/px/$reportId': {
-      id: '/_authenticated/px/$reportId'
-      path: '/px/$reportId'
-      fullPath: '/px/$reportId'
-      preLoaderRoute: typeof AuthenticatedPxReportIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/clinics/$clinicId': {
-      id: '/_authenticated/clinics/$clinicId'
-      path: '/clinics/$clinicId'
-      fullPath: '/clinics/$clinicId'
-      preLoaderRoute: typeof AuthenticatedClinicsClinicIdRouteImport
+    '/_authenticated/weekly': {
+      id: '/_authenticated/weekly'
+      path: '/weekly'
+      fullPath: '/weekly'
+      preLoaderRoute: typeof AuthenticatedWeeklyRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/admin/demo': {
@@ -523,15 +465,85 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminUsersRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/clinics/': {
+      id: '/_authenticated/clinics/'
+      path: '/clinics'
+      fullPath: '/clinics/'
+      preLoaderRoute: typeof AuthenticatedClinicsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clinics/$clinicId': {
+      id: '/_authenticated/clinics/$clinicId'
+      path: '/clinics/$clinicId'
+      fullPath: '/clinics/$clinicId'
+      preLoaderRoute: typeof AuthenticatedClinicsClinicIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/px/': {
+      id: '/_authenticated/px/'
+      path: '/px'
+      fullPath: '/px/'
+      preLoaderRoute: typeof AuthenticatedPxIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/px/$reportId': {
+      id: '/_authenticated/px/$reportId'
+      path: '/px/$reportId'
+      fullPath: '/px/$reportId'
+      preLoaderRoute: typeof AuthenticatedPxReportIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/px/upload': {
+      id: '/_authenticated/px/upload'
+      path: '/px/upload'
+      fullPath: '/px/upload'
+      preLoaderRoute: typeof AuthenticatedPxUploadRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rounds/': {
+      id: '/_authenticated/rounds/'
+      path: '/rounds'
+      fullPath: '/rounds/'
+      preLoaderRoute: typeof AuthenticatedRoundsIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rounds/$roundId': {
+      id: '/_authenticated/rounds/$roundId'
+      path: '/rounds/$roundId'
+      fullPath: '/rounds/$roundId'
+      preLoaderRoute: typeof AuthenticatedRoundsRoundIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/rounds/new': {
+      id: '/_authenticated/rounds/new'
+      path: '/rounds/new'
+      fullPath: '/rounds/new'
+      preLoaderRoute: typeof AuthenticatedRoundsNewRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks/': {
+      id: '/_authenticated/tasks/'
+      path: '/tasks'
+      fullPath: '/tasks/'
+      preLoaderRoute: typeof AuthenticatedTasksIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/tasks/$taskId': {
+      id: '/_authenticated/tasks/$taskId'
+      path: '/tasks/$taskId'
+      fullPath: '/tasks/$taskId'
+      preLoaderRoute: typeof AuthenticatedTasksTaskIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEscalationsRoute: typeof AuthenticatedEscalationsRoute
+  AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
   AuthenticatedRecommendationsRoute: typeof AuthenticatedRecommendationsRoute
   AuthenticatedTodayRoute: typeof AuthenticatedTodayRoute
-  AuthenticatedInsightsRoute: typeof AuthenticatedInsightsRoute
   AuthenticatedTrendsRoute: typeof AuthenticatedTrendsRoute
   AuthenticatedWeeklyRoute: typeof AuthenticatedWeeklyRoute
   AuthenticatedAdminDemoRoute: typeof AuthenticatedAdminDemoRoute
@@ -551,9 +563,9 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEscalationsRoute: AuthenticatedEscalationsRoute,
+  AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
   AuthenticatedRecommendationsRoute: AuthenticatedRecommendationsRoute,
   AuthenticatedTodayRoute: AuthenticatedTodayRoute,
-  AuthenticatedInsightsRoute: AuthenticatedInsightsRoute,
   AuthenticatedTrendsRoute: AuthenticatedTrendsRoute,
   AuthenticatedWeeklyRoute: AuthenticatedWeeklyRoute,
   AuthenticatedAdminDemoRoute: AuthenticatedAdminDemoRoute,
@@ -578,10 +590,20 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AcceptInviteRoute: AcceptInviteRoute,
   AuthRoute: AuthRoute,
-  DemoRoute: DemoRoute,
   AwaitingApprovalRoute: AwaitingApprovalRoute,
+  DemoRoute: DemoRoute,
   ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

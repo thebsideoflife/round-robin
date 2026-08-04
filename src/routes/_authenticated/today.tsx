@@ -19,6 +19,7 @@ import { WinCard } from "@/components/win-card";
 import { useStore } from "@/lib/store";
 import { daysBetween, isOpenStatus, isOverdue } from "@/lib/domain/time";
 import { ownerAtLevel } from "@/lib/domain/org";
+import { byUrgency, isCritical } from "@/lib/domain/priority";
 import { recommendations } from "@/lib/domain/recommendations";
 import { ROLE_LABELS } from "@/data/types";
 
@@ -75,11 +76,7 @@ function TodayPage() {
   const mine = open
     .filter((t) => t.escalation !== "Manager Resolve" || currentUser.role === "manager")
     .filter((t) => ownerAtLevel(graph, t, t.escalation)?.id === currentUser.id)
-    .sort((a, b) => {
-      const rank = (x: typeof a) =>
-        (x.safetyRelated ? 0 : 1) * 100 + (isOverdue(x) ? 0 : 50) + daysBetween(x.dueDate) * -1;
-      return rank(a) - rank(b);
-    })
+    .sort(byUrgency)
     .slice(0, 6);
 
   const nextRounds = recommendations(scope.clinics, scope.rounds, scope.tasks).slice(0, 3);
@@ -176,6 +173,11 @@ function TodayPage() {
                 key={t.id}
                 to="/tasks/$taskId"
                 params={{ taskId: t.id }}
+                leading={
+                  isCritical(t) ? (
+                    <span className="h-9 w-1 rounded-full bg-critical" aria-label="Critical" />
+                  ) : null
+                }
                 title={t.title}
                 subtitle={`${clinicById(t.clinicId)?.name ?? "—"} · ${t.theme}`}
                 right={

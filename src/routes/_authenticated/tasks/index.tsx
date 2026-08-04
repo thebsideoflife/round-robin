@@ -1,12 +1,13 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Mic, Search, X } from "lucide-react";
+import { AlertTriangle, Mic, Search, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { EmptyState, FilterRail, PageHeader } from "@/components/primitives";
 import { TaskRow } from "@/components/task-row";
 import { useStore } from "@/lib/store";
 import { isOpenStatus, isOverdue } from "@/lib/domain/time";
+import { splitCritical } from "@/lib/domain/priority";
 import { ownerAtLevel, type OrgGraph } from "@/lib/domain/org";
 import type { Person, Task } from "@/data/types";
 
@@ -107,11 +108,11 @@ function TasksPage() {
         .toLowerCase()
         .includes(q.toLowerCase()),
     )
-    .sort((a, b) =>
-      active === "Closed"
-        ? +new Date(b.closedAt ?? b.createdAt) - +new Date(a.closedAt ?? a.createdAt)
-        : +new Date(a.dueDate) - +new Date(b.dueDate),
-    );
+;
+
+  // Safety and critical items are lifted out and pinned, never buried by a
+  // nearer due date further down the list.
+  const { critical, rest } = splitCritical(tasks);
 
   const clearChip = (key: "theme" | "report") =>
     navigate({
@@ -182,7 +183,21 @@ function TasksPage() {
 
       {tasks.length ? (
         <div className="space-y-2.5">
-          {tasks.slice(0, 60).map((t) => (
+          {critical.length ? (
+            <section className="space-y-2.5">
+              <p className="flex items-center gap-2 text-[0.9375rem] font-medium text-critical">
+                <AlertTriangle className="h-4 w-4" />
+                Needs attention first
+              </p>
+              {critical.map((t) => (
+                <div key={t.id} className="rounded-2xl ring-2 ring-critical/25">
+                  <TaskRow task={t} clinicName={clinicById(t.clinicId)?.name ?? ""} />
+                </div>
+              ))}
+              {rest.length ? <div className="h-1" /> : null}
+            </section>
+          ) : null}
+          {rest.slice(0, 60).map((t) => (
             <TaskRow key={t.id} task={t} clinicName={clinicById(t.clinicId)?.name ?? ""} />
           ))}
           {tasks.length > 60 ? (

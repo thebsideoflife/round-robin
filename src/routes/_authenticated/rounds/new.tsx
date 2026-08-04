@@ -24,6 +24,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EscalationBadge } from "@/components/status";
+import { HealthDot, BAND_WORD } from "@/components/health-ring";
+import { clinicHealth } from "@/lib/domain/health";
 import { EmptyState, SectionHeading } from "@/components/primitives";
 import { VoiceButton, VoiceTextarea } from "@/components/voice-input";
 import { useStore } from "@/lib/store";
@@ -173,6 +175,29 @@ function NewRound() {
 
   const clinicName = scope.clinics.find((c) => c.id === clinicId)?.name ?? "Clinic";
 
+  // Clinics ordered worst-health-first, so the pick list nudges toward the
+  // place that actually needs a visit.
+  const clinicOptions = useMemo(
+    () =>
+      scope.clinics
+        .map((c) => ({ clinic: c, health: clinicHealth(c, scope.rounds, scope.tasks) }))
+        .sort((a, b) => a.health.score - b.health.score),
+    [scope.clinics, scope.rounds, scope.tasks],
+  );
+  const selectedHealth = clinicOptions.find((o) => o.clinic.id === clinicId)?.health;
+
+  // Everyone previously rounded with — this clinic first, then the wider scope.
+  const knownPeople = useMemo(() => {
+    const here: string[] = [];
+    const elsewhere: string[] = [];
+    for (const r of scope.rounds) {
+      const name = r.individual?.trim();
+      if (!name) continue;
+      (r.clinicId === clinicId ? here : elsewhere).push(name);
+    }
+    return [...new Set([...here, ...elsewhere])].slice(0, 40);
+  }, [scope.rounds, clinicId]);
+
   const openIssues = useMemo(
     () => data.tasks.filter((t) => t.clinicId === clinicId && isOpenStatus(t)),
     [data.tasks, clinicId],
@@ -320,17 +345,35 @@ function NewRound() {
           <div className="space-y-2">
             <Label htmlFor="clinic">Clinic</Label>
             <Select value={clinicId} onValueChange={setClinicId}>
-              <SelectTrigger id="clinic" className="h-11 w-full text-base">
+              <SelectTrigger id="clinic" className="h-12 w-full text-base">
                 <SelectValue placeholder="Select clinic" />
               </SelectTrigger>
-              <SelectContent>
-                {scope.clinics.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.name}
+              <SelectContent className="max-h-[60vh]">
+                {/* Worst health first, with a colour dot and days-since — so the
+                    clinic that most needs a visit is the easiest one to pick. */}
+                {clinicOptions.map(({ clinic, health }) => (
+                  <SelectItem key={clinic.id} value={clinic.id}>
+                    <span className="flex w-full items-center gap-2.5">
+                      <HealthDot band={health.band} />
+                      <span className="min-w-0 flex-1 truncate">{clinic.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {health.score} ·{" "}
+                        {health.lastRoundDays === null ? "never" : `${health.lastRoundDays}d`}
+                      </span>
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            {selectedHealth ? (
+              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                <HealthDot band={selectedHealth.band} />
+                {BAND_WORD[selectedHealth.band]} · {selectedHealth.openTasks} open ·{" "}
+                {selectedHealth.lastRoundDays === null
+                  ? "never visited"
+                  : `last visit ${selectedHealth.lastRoundDays}d ago`}
+              </p>
+            ) : null}
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between gap-2">
@@ -343,12 +386,40 @@ function NewRound() {
             </div>
             <Input
               id="individual"
+              list="rr-people"
               value={individual}
               onChange={(e) => setIndividual(e.target.value)}
-              placeholder="e.g. Dr. Alicia Moreno"
+              placeholder="Start typing, or pick someone you've rounded with"
               maxLength={80}
-              className="h-11 text-base"
+              className="h-12 text-base"
+              autoComplete="off"
             />
+            {/* Names already rounded with, this clinic first. A native datalist
+                keeps the phone keyboard behaviour and needs no extra library. */}
+            <datalist id="rr-people">
+              {knownPeople.map((n) => (
+                <option key={n} value={n} />
+              ))}
+            </datalist>
+            {knownPeople.length ? (
+              <div className="scroll-rail -mx-1 px-1 pt-1">
+                {knownPeople.slice(0, 6).map((n) => (
+                  <button
+                    key={n}
+                    type="button"
+                    onClick={() => setIndividual(n)}
+                    className={cn(
+                      "press h-9 rounded-full border px-3.5 text-sm whitespace-nowrap",
+                      individual === n
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground",
+                    )}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div className="space-y-2">
             <Label htmlFor="rounded-role">Their role</Label>

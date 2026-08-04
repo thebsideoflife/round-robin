@@ -9,14 +9,12 @@
   "compatibility_date": "2026-08-03",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Nitro (configured in vite.config.ts, cloudflare-module target)
-  // emits the SSR entry here and the client bundle into .output/public.
-  // Verify with `ls .output` after your first `npm run build` — if your build
-  // writes somewhere else, update both paths and nothing else changes.
-  "main": ".output/server/index.mjs",
+  // Vite 8 + TanStack Start writes the SSR entry to dist/server/server.js and
+  // the client bundle to dist/client. Verified against an actual build.
+  "main": "dist/server/server.js",
 
   "assets": {
-    "directory": ".output/public"
+    "directory": "dist/client"
     // Intentionally NO `not_found_handling`. This app is server-rendered, not
     // an SPA shell: unmatched paths must reach the Worker so TanStack Start can
     // render the route (and so /today, /insights etc. work on a cold load).

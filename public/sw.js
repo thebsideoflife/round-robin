@@ -11,7 +11,7 @@
  * pick up the new build on its next launch, with an in-app "Update" prompt for
  * sessions that are already open. No terminal, no app store review.
  */
-const CACHE_VERSION = "rr-v4-vector";
+const CACHE_VERSION = "rr-v5-admin";
 const ASSET_CACHE = `${CACHE_VERSION}-assets`;
 const OFFLINE_URL = "/offline.html";
 
@@ -30,6 +30,9 @@ self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
       const keys = await caches.keys();
+      // Delete every cache that isn't this exact version — including ones from
+      // an earlier version of this same worker, so a stale shell can't survive
+      // a deploy.
       await Promise.all(
         keys.filter((k) => !k.startsWith(CACHE_VERSION)).map((k) => caches.delete(k)),
       );

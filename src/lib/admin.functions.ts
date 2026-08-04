@@ -25,6 +25,7 @@ export interface DirectoryUser {
   email: string;
   fullName: string;
   title: string;
+  avatarUrl: string | null;
   roles: AppRole[];
   isPending: boolean;
   createdAt: string;
@@ -44,6 +45,7 @@ export const listDirectory = createServerFn({ method: "GET" })
         email: string | null;
         full_name: string | null;
         title: string | null;
+        avatar_url: string | null;
         roles: AppRole[] | null;
         is_pending: boolean;
         created_at: string;
@@ -54,6 +56,7 @@ export const listDirectory = createServerFn({ method: "GET" })
         email: r.email ?? "",
         fullName: r.full_name ?? "",
         title: r.title ?? "",
+        avatarUrl: r.avatar_url ?? null,
         roles: r.roles ?? [],
         isPending: r.is_pending,
         createdAt: r.created_at,
@@ -204,4 +207,83 @@ export const createClinicRecord = createServerFn({ method: "POST" })
       .single();
     if (error) throw new Error(error.message);
     return { id: row.id as string };
+  });
+
+/** Edit someone's display name, title or photo. Admins only (or yourself). */
+export const updateProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        fullName: z.string().max(120).optional(),
+        title: z.string().max(160).optional(),
+        // "" clears the photo; undefined leaves it untouched.
+        avatarUrl: z.string().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("admin_update_profile", {
+      _user_id: data.userId,
+      _full_name: data.fullName ?? null,
+      _title: data.title ?? null,
+      _avatar_url: data.avatarUrl ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+/**
+ * Set a temporary password.
+ *
+ * Ends every existing session for that account and flags it so the app forces
+ * a change at next sign-in — otherwise a handover could leave the previous
+ * holder signed in on another device.
+ */
+export const setTemporaryPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        password: z
+          .string()
+          .min(10, "Use at least 10 characters")
+          .max(72, "Bcrypt truncates beyond 72 characters"),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("admin_set_password", {
+      _user_id: data.userId,
+      _password: data.password,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+/**
+ * Send a password reset email instead of handing one over.
+ *
+ * Preferable to setTemporaryPassword when the person has a working inbox —
+ * nobody has to speak a password out loud or put it in a chat message.
+ */
+export const sendPasswordReset = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ email: z.string().email(), redirectTo: z.string().url().optional() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+      _user_id: context.userId,
+      _role: "admin",
+    });
+    if (!isAdmin) throw new Error("Only administrators can send password resets");
+
+    const { error } = await context.supabase.auth.resetPasswordForEmail(data.email, {
+      redirectTo: data.redirectTo,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
   });

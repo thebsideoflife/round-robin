@@ -37,3 +37,7 @@ dist-ssr
 !.env.example
 
 supabase/restore/*.zip
+
+# LibreOffice / Office lock files
+.~lock.*#
+~$*
