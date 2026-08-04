@@ -50,6 +50,27 @@ const ExtractionSchema = z.object({
       }),
     )
     .default([]),
+  specialties: z
+    .array(
+      z.object({
+        name: z.string(),
+        n: z.number().nullish().default(null),
+        top_box: z.number().default(0),
+        percentile: z.number().default(0),
+      }),
+    )
+    .default([])
+    .describe("Specialty Performance table"),
+  distribution: z
+    .array(
+      z.object({
+        label: z.string().describe("Very Good, Good, Fair, Poor or Very Poor"),
+        n: z.number().nullish().default(null),
+        percent: z.number().nullish().default(null),
+      }),
+    )
+    .default([])
+    .describe("Distribution of Responses"),
   priority_index: z
     .array(
       z.object({
@@ -188,11 +209,109 @@ function normalizeExtraction(extraction: Extraction): Extraction {
   };
 }
 
+const EXTRACTION_INSTRUCTIONS = `Extract every number from this Press Ganey Site Scorecard into the JSON schema.
+
+The document has a fixed layout. Work through it table by table.
+
+1. HEADER — a single pipe-delimited line at the top.
+   site_name     <- "Site Name:"
+   facility_name <- "Facility Name:"
+   service_line  <- "Service Line:"
+   time_frame    <- "Time Frame:" plus "Current Benchmarking Period:" if present
+
+2. SERVICE LINE PERFORMANCE — the summary block.
+   overall.n          <- the "n" row
+   overall.top_box    <- "Top Box Score" as a number, no % sign (84.29 not "84.29%")
+   overall.percentile <- "Percentile Rank"
+
+3. TIME PERIOD table — one column per year.
+   trends[] = { period: the year, n, top_box, percentile }
+   The percentile row is sometimes labelled "Percentile Rank" followed by the
+   first year's value on the same line. Align values to years by position.
+
+4. SECTION PERFORMANCE — columns: Survey Type | Section | n | Top Box Score | Percentile Rank.
+   sections[] = { name: the Section, n, top_box, percentile }
+   Expect rows such as Access, Moving Through Your Visit, Nurse/Assistant,
+   Care Provider, Personal Issues, Overall Assessment. One row per section.
+
+5. DISTRIBUTION OF RESPONSES — the frequency bars.
+   distribution[] = { label, n, percent } for Very Good, Good, Fair, Poor, Very Poor.
+
+6. SPECIALTY PERFORMANCE — columns: Specialty | n | Top Box Score | Percentile Rank.
+   specialties[] = { name, n, top_box, percentile }
+
+7. PROVIDER PERFORMANCE — columns: Provider | n | Top Box Score | Percentile Rank.
+   providers[] = { name, n, top_box, percentile }
+   Use the DETAILED TABLE at the bottom, not the bar chart labels.
+   Names appear as "LAST, FIRST" and may wrap across two lines — rejoin them.
+   Include every provider, even n=1 and 0.00% rows.
+
+8. PRIORITY INDEX — columns: Current Order | Survey Type | Question | Percentile Rank | Correlation.
+   priority_index[] = { rank: Current Order, question, percentile, correlation }
+   Correlation is a decimal such as 0.89. Ranks can tie — keep both rows.
+   Strip trailing † and ^ marks from question text.
+
+RULES
+- Percentages as plain numbers: 84.29, not "84.29%".
+- Never invent a row. If a table is absent, return an empty array for it.
+- Never carry a value from one table into another.
+- Return only the JSON object.`;
+
+/**
+ * Pull the PDF's text layer.
+ *
+ * Press Ganey exports these scorecards with real text, not scans — so the
+ * numbers can be read directly instead of shipping six rendered pages to a
+ * vision model. That is the difference between roughly a minute and roughly
+ * five seconds, and it is more accurate because nothing is being read off an
+ * image.
+ *
+ * Returns null for a scanned or image-only PDF, which falls through to vision.
+ */
+async function extractPdfText(pdfBase64: string): Promise<string | null> {
+  try {
+    const bytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0));
+    // Dynamic import so a missing/failed module can never break the upload.
+    const { extractText, getDocumentProxy } = await import("unpdf");
+    const doc = await getDocumentProxy(bytes);
+    const { text } = await extractText(doc, { mergePages: true });
+    const joined = Array.isArray(text) ? text.join("\n") : text;
+    // A scorecard's worth of tables is a few thousand characters. Much less
+    // than that means it's a scan and the text layer is decorative.
+    if (!joined || joined.replace(/\s/g, "").length < 800) return null;
+    return joined.slice(0, 120_000);
+  } catch (error) {
+    console.warn(
+      "[px] text-layer extraction unavailable, using vision:",
+      error instanceof Error ? error.message : "unknown",
+    );
+    return null;
+  }
+}
+
 async function extractScorecardFromPdf(
   config: { baseURL: string; apiKey: string },
   pdfBase64: string,
   fileName: string,
 ): Promise<Extraction> {
+  const pdfText = await extractPdfText(pdfBase64);
+
+  // Same schema, same instructions — the only difference is whether the model
+  // reads rendered pages or the text it already has.
+  const userContent = pdfText
+    ? [
+        { type: "text", text: `${EXTRACTION_INSTRUCTIONS}\n\nSCORECARD TEXT:\n${pdfText}` },
+      ]
+    : [
+        { type: "text", text: EXTRACTION_INSTRUCTIONS },
+        {
+          type: "file",
+          file: { filename: fileName, file_data: `data:application/pdf;base64,${pdfBase64}` },
+        },
+      ];
+
+  console.info(`[px] extracting via ${pdfText ? "text layer" : "vision"}`);
+
   const response = await fetch(`${config.baseURL.replace(/\/$/, "")}/chat/completions`, {
     method: "POST",
     headers: {
@@ -210,50 +329,7 @@ async function extractScorecardFromPdf(
         },
         {
           role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Map this exact Site Scorecard PDF template into the JSON object below.
-
-HEADER MAPPING:
-- site_name: value after "Site Name:"
-- facility_name: value after "Facility Name:"
-- service_line: value after "Service Line:"
-- time_frame: value after "Time Frame:"; include Current Benchmarking Period only if visible and useful.
-
-OVERALL MAPPING:
-- Use the first "Service Line Performance" / "PG Likelihood to Recommend" summary table.
-- overall.n = row "n"
-- overall.top_box = row "Top Box Score" as a number without %
-- overall.percentile = row "Percentile Rank"
-
-TRENDS MAPPING:
-- Use the "Time Period" table under Service Line Performance or Top Box Score.
-- For each year column, create { period, n, top_box, percentile }.
-
-SECTIONS MAPPING:
-- Use ONLY the "Section Performance" table with columns Survey Type, Section, n, Top Box Score, Percentile Rank.
-- Keep one row per unique Section. Do not duplicate repeated visual rows.
-
-PROVIDERS MAPPING:
-- Use ONLY the detailed "Provider" table with columns Provider, n, Top Box Score, Percentile Rank.
-- Do not use Specialty Performance rows as providers.
-
-PRIORITY INDEX MAPPING:
-- Use ONLY the "Priority Index" table.
-- rank = Current Order, question = Question, percentile = Percentile Rank, correlation = Correlation.
-
-Return exactly this JSON shape with numbers as numbers and unknown values as null:
-{"site_name":"","facility_name":null,"service_line":null,"time_frame":null,"overall":{"n":null,"top_box":0,"percentile":0},"trends":[{"period":"","n":null,"top_box":null,"percentile":null}],"sections":[{"name":"","n":null,"top_box":0,"percentile":0}],"providers":[{"name":"","n":null,"top_box":0,"percentile":0}],"priority_index":[{"rank":0,"question":"","percentile":0,"correlation":0}]}`,
-            },
-            {
-              type: "file",
-              file: {
-                filename: fileName,
-                file_data: `data:application/pdf;base64,${pdfBase64}`,
-              },
-            },
-          ],
+          content: userContent,
         },
       ],
     }),
@@ -434,10 +510,13 @@ export const processReport = createServerFn({ method: "POST" })
 
       const narrativePrompt = `You are advising a healthcare clinic manager. Generate practical, action-oriented improvement plans. Use the provided extracted data and the ranked opportunities. Do not be generic — every action must be operational and specific to the opportunity. Owner roles must be one of: Clinic Manager, Provider, Nurse/MA, Access Center.
 
-SITE: ${extracted.site_name} | Service line: ${extracted.service_line ?? "n/a"}
+SITE: ${extracted.site_name} | Service line: ${extracted.service_line ?? "n/a"} | ${extracted.time_frame ?? ""}
 OVERALL: ${extracted.overall.top_box}% top box, ${extracted.overall.percentile}th percentile (n=${extracted.overall.n})
 
+YEAR-OVER-YEAR: ${JSON.stringify(extracted.trends)}
 SECTIONS: ${JSON.stringify(extracted.sections)}
+SPECIALTIES: ${JSON.stringify(extracted.specialties)}
+RESPONSE DISTRIBUTION: ${JSON.stringify(extracted.distribution)}
 TOP PROVIDERS (>=90th): ${JSON.stringify(topProviders)}
 COACHING-TIER PROVIDERS (<50th): ${JSON.stringify(coachingProviders)}
 PRIORITY INDEX (high correlation drivers): ${JSON.stringify(extracted.priority_index)}
@@ -445,7 +524,19 @@ PRIORITY INDEX (high correlation drivers): ${JSON.stringify(extracted.priority_i
 RANKED OPPORTUNITIES (use these exact titles in order, generate one plan per opportunity):
 ${opps.map((o, i) => `${i + 1}. ${o.title} — ${o.reason}`).join("\n")}
 
-Also produce a coaching plan for EACH coaching-tier provider above (use the priority index drivers to identify behavior gaps vs. top performers).`;
+Also produce a coaching plan for EACH coaching-tier provider above (use the priority index drivers to identify behavior gaps vs. top performers).
+
+HOW TO USE THE DATA
+- The Priority Index is the most important input. High correlation means moving that question moves the composite. Attack high-correlation items sitting at a low percentile first; ignore high-percentile items even if correlation is high.
+- Use the year-over-year trend to say whether this is a decline to reverse or a plateau to break. Name the direction explicitly.
+- Use the response distribution to size the prize: converting "Good" to "Very Good" is usually the largest available gain, since top box counts only "Very Good".
+- Compare each section against the overall percentile. A section far below the composite is where the loss is concentrated.
+- Where a provider sits far below peers at the same site, that is a coaching problem, not a process problem. Say so.
+
+EVERY ACTION MUST
+- Name who does it (owner_role), what changes, and how you would know it worked.
+- Be doable by a clinic team without new funding or new software.
+- Avoid "improve communication" style filler. Say the specific behaviour or process change.`;
 
       let narrative: Narrative;
       try {

@@ -24,8 +24,13 @@ const ALLOWED_MIME = [
   "audio/ogg",
   "audio/mp4",
   "audio/mpeg",
+  "audio/mp3",
   "audio/wav",
+  "audio/x-wav",
   "audio/x-m4a",
+  "audio/m4a",
+  "audio/aac",
+  "audio/flac",
 ] as const;
 
 const InputSchema = z.object({
@@ -116,8 +121,14 @@ async function viaWhisper(
   });
 
   if (!res.ok) {
-    console.error("[transcribe] whisper endpoint returned", res.status);
-    return { error: res.status === 429 ? "Transcription is rate limited. Try again in a moment." : "Transcription failed." };
+    const detail = await res.text().catch(() => "");
+    console.error("[transcribe] whisper endpoint returned", res.status, detail.slice(0, 400));
+    if (res.status === 429) return { error: "Transcription is rate limited. Try again in a moment." };
+    if (res.status === 401 || res.status === 403)
+      return { error: "The transcription key was rejected. Check WHISPER_API_KEY." };
+    if (res.status === 404)
+      return { error: "No transcription endpoint at that URL. Check WHISPER_BASE_URL." };
+    return { error: `Transcription failed (${res.status}).` };
   }
   const json = (await res.json()) as { text?: string };
   return { text: (json.text ?? "").trim() };
@@ -219,10 +230,10 @@ export const transcribeVoiceNote = createServerFn({ method: "POST" })
 
     console.info(`[transcribe] user=${context.userId} bytes=${bytes.byteLength} type=${mimeType}`);
 
-    // Only use the Whisper path when an endpoint is explicitly configured —
-    // Gemini has no /audio/transcriptions route, so falling back to AI_API_KEY
-    // here would produce a 404 rather than a transcript.
-    const whisperKey = process.env.WHISPER_API_KEY;
+    // Whisper is the primary path. Gemini's audio understanding rejects the
+    // webm/opus container Chrome's MediaRecorder produces, so a purpose-built
+    // speech-to-text endpoint is both more reliable and considerably faster.
+    const whisperKey = process.env.WHISPER_API_KEY ?? process.env.OPENAI_API_KEY;
     const whisperBase = process.env.WHISPER_BASE_URL ?? "https://api.openai.com/v1";
     const whisperModel = process.env.WHISPER_MODEL ?? "whisper-1";
     const chatKey = process.env.AI_API_KEY ?? process.env.GEMINI_API_KEY ?? process.env.OPENAI_API_KEY;
