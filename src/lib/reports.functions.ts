@@ -260,29 +260,40 @@ RULES
 /**
  * Pull the PDF's text layer.
  *
- * Press Ganey exports these scorecards with real text, not scans — so the
- * numbers can be read directly instead of shipping six rendered pages to a
- * vision model. That is the difference between roughly a minute and roughly
- * five seconds, and it is more accurate because nothing is being read off an
- * image.
+ * Press Ganey exports these scorecards with real text rather than scans, so
+ * reading it directly beats sending six rendered pages to a vision model —
+ * seconds instead of a minute, and more accurate, because nothing is being
+ * read off an image.
  *
- * Returns null for a scanned or image-only PDF, which falls through to vision.
+ * Failure modes, and why each is safe:
+ *  - unpdf can't be bundled for Workers -> `vite build` fails, CI stops, the
+ *    current deploy stays live. Loud and harmless.
+ *  - unpdf loads but throws at runtime -> caught below, falls back to vision.
+ *  - PDF is a scan with no text layer -> returns null, falls back to vision.
+ *
+ * Set PX_TEXT_EXTRACTION=0 to force the vision path without a code change.
  */
 async function extractPdfText(pdfBase64: string): Promise<string | null> {
+  if (process.env.PX_TEXT_EXTRACTION === "0") return null;
   try {
     const bytes = Uint8Array.from(atob(pdfBase64), (c) => c.charCodeAt(0));
-    // Dynamic import so a missing/failed module can never break the upload.
+    // Statically analysable so Vite bundles it — a /* @vite-ignore */ here
+    // would leave the import unresolved at runtime, where there is no
+    // node_modules to fall back on.
     const { extractText, getDocumentProxy } = await import("unpdf");
     const doc = await getDocumentProxy(bytes);
     const { text } = await extractText(doc, { mergePages: true });
     const joined = Array.isArray(text) ? text.join("\n") : text;
-    // A scorecard's worth of tables is a few thousand characters. Much less
-    // than that means it's a scan and the text layer is decorative.
-    if (!joined || joined.replace(/\s/g, "").length < 800) return null;
+    // A scorecard's tables run to a few thousand characters. Much less than
+    // that means the text layer is decorative and the real content is an image.
+    if (!joined || joined.replace(/\s/g, "").length < 800) {
+      console.info("[px] text layer too thin, using vision");
+      return null;
+    }
     return joined.slice(0, 120_000);
   } catch (error) {
     console.warn(
-      "[px] text-layer extraction unavailable, using vision:",
+      "[px] text-layer extraction failed, using vision:",
       error instanceof Error ? error.message : "unknown",
     );
     return null;
