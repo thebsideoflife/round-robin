@@ -74,3 +74,6 @@ never trusted to filter. No read path uses the service-role key.
 
 `SECURITY.md` — current posture, findings, and the checklist to work through
 before this handles PHI.
+
+
+
