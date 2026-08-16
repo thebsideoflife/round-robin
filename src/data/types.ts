@@ -91,6 +91,15 @@ export interface Task {
   safetyRelated: boolean;
   createdAt: string;
   closedAt?: string;
+  /** Who marked it done. Cleared if it gets reopened. */
+  closedBy?: string;
+  /** Who confirmed the fix held. Never the same person as closedBy inside 15 days. */
+  validatedBy?: string;
+  validatedAt?: string;
+  /** Department that owns the fix, when it routed outside the clinic. */
+  departmentId?: string;
+  /** Why this was assigned outside the usual accountable owner. */
+  assignmentNote?: string;
   validationHistory: { date: string; resolved: boolean; roundId?: string; note?: string }[];
 }
 

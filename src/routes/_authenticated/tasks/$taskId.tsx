@@ -16,6 +16,7 @@ import {
 import { SectionHeading } from "@/components/stat-card";
 import { EscalationBadge, PriorityBadge, StatusBadge } from "@/components/status";
 import { EscalationPath } from "@/components/escalation-path";
+import { ValidationPanel } from "@/components/validation-panel";
 import { assignmentCandidates } from "@/lib/domain/org";
 import { useStore } from "@/lib/store";
 import { ALLOWED_NEXT, allowedEscalationLevels, suggestEscalation } from "@/lib/domain/escalation";
@@ -41,7 +42,8 @@ export const Route = createFileRoute("/_authenticated/tasks/$taskId")({
 
 function TaskDetail() {
   const { taskId } = Route.useParams();
-  const { data, graph, clinicById, personById, updateTaskStatus, updateTask, setEscalation } = useStore();
+  const { data, graph, clinicById, personById, updateTaskStatus, updateTask, setEscalation, settingsForClinic } =
+    useStore();
   const task = data.tasks.find((t) => t.id === taskId);
   const [note, setNote] = useState("");
   const [reason, setReason] = useState("");
@@ -55,6 +57,7 @@ function TaskDetail() {
     createdAt: task.createdAt,
     clinicId: task.clinicId,
     allTasks: data.tasks.filter((t) => t.id !== task.id),
+    settings: settingsForClinic(task.clinicId),
   });
 
   return (
@@ -124,33 +127,41 @@ function TaskDetail() {
       </Card>
 
       <section className="space-y-3">
-        <SectionHeading title="Workflow" description="Move the item through the resolution path." />
+        <SectionHeading
+          title="Status"
+          description="Closing is a claim; it needs confirming before it counts."
+        />
+        <ValidationPanel task={task} />
+
+        {/* Everything except closing — closing goes through the panel above so
+            it always lands in Pending validation rather than straight to Closed. */}
+        {ALLOWED_NEXT[task.status].filter((n) => n !== "Closed").length ? (
+          <Card className="gap-3 p-4">
+            <p className="text-sm text-muted-foreground">Or move it to:</p>
+            <div className="flex flex-wrap gap-2">
+              {ALLOWED_NEXT[task.status]
+                .filter((n) => n !== "Closed")
+                .map((next) => (
+                  <Button
+                    key={next}
+                    variant="outline"
+                    onClick={() => {
+                      updateTaskStatus(task.id, next as TaskStatus, note || undefined);
+                      setNote("");
+                      toast.success(`Moved to ${next}`);
+                    }}
+                  >
+                    {next}
+                  </Button>
+                ))}
+            </div>
+          </Card>
+        ) : null}
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeading title="Details" />
         <Card className="gap-4 p-4">
-          <div className="flex flex-wrap gap-2">
-            {ALLOWED_NEXT[task.status].map((next) => (
-              <Button
-                key={next}
-                variant={next === "Closed" ? "default" : "outline"}
-                onClick={() => {
-                  updateTaskStatus(task.id, next as TaskStatus, note || undefined);
-                  setNote("");
-                  toast.success(`Moved to ${next}`);
-                }}
-              >
-                {next}
-              </Button>
-            ))}
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="note">Resolution note</Label>
-            <Textarea
-              id="note"
-              value={note}
-              maxLength={500}
-              placeholder="What changed? Closed items are re-validated on the next round."
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label>Due date</Label>

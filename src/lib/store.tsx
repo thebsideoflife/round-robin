@@ -30,7 +30,15 @@ import {
   updateTaskStatus as updateTaskStatusFn,
   updateTask as updateTaskFn,
   setEscalation as setEscalationFn,
+  closeTask as closeTaskFn,
+  validateTask as validateTaskFn,
 } from "@/lib/tasks.functions";
+import { listEscalationSettings } from "@/lib/settings.functions";
+import {
+  DEFAULT_ESCALATION_SETTINGS,
+  settingsFor,
+  type EscalationSettings,
+} from "@/lib/domain/policy";
 
 const SCOPE_KEY = ["scope"] as const;
 
@@ -50,6 +58,14 @@ interface StoreValue {
   scope: Scope;
   /** Org graph for the loaded dataset (top-down rollup + bottom-up routing). */
   graph: OrgGraph;
+  /** Escalation thresholds, per division, with the system default included. */
+  escalationSettings: EscalationSettings[];
+  /** The thresholds that apply to a given clinic. */
+  settingsForClinic: (clinicId: string) => EscalationSettings;
+  /** Owner marks work done; it moves to Pending validation. */
+  closeTask: (id: string, note?: string) => Promise<void>;
+  /** Someone else confirms or rejects the claimed fix. */
+  validateTask: (id: string, confirmed: boolean, note?: string) => Promise<void>;
   today: Date;
   isLoading: boolean;
   personById: (id: string) => Person | undefined;
@@ -98,6 +114,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     queryKey: SCOPE_KEY,
     queryFn: () => fetchScope(),
   });
+
+  const fetchSettings = useServerFn(listEscalationSettings);
+  const settingsQuery = useQuery({
+    queryKey: ["escalation-settings"],
+    queryFn: () => fetchSettings(),
+    // Thresholds change rarely; no need to refetch them constantly.
+    staleTime: 5 * 60_000,
+  });
+  const escalationSettings = settingsQuery.data ?? [DEFAULT_ESCALATION_SETTINGS];
 
   const data: AppData = query.data?.data ?? EMPTY_DATA;
   const realUser: Person = query.data?.currentUser ?? {
@@ -169,6 +194,25 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [doUpdateTask, invalidate],
   );
 
+  const doCloseTask = useServerFn(closeTaskFn);
+  const doValidateTask = useServerFn(validateTaskFn);
+
+  const closeTask = useCallback(
+    async (id: string, note?: string) => {
+      await doCloseTask({ data: { id, note } });
+      void invalidate();
+    },
+    [doCloseTask, invalidate],
+  );
+
+  const validateTask = useCallback(
+    async (id: string, confirmed: boolean, note?: string) => {
+      await doValidateTask({ data: { id, confirmed, note } });
+      void invalidate();
+    },
+    [doValidateTask, invalidate],
+  );
+
   const setEscalation = useCallback(
     async (
       id: string,
@@ -194,6 +238,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     isViewingAs: !!viewAs,
     scope,
     graph: scope.graph,
+    escalationSettings,
+    settingsForClinic: (clinicId: string) =>
+      settingsFor(escalationSettings, data.clinics.find((c) => c.id === clinicId)?.division),
+    closeTask,
+    validateTask,
 
     today: new Date(),
     isLoading: query.isLoading,

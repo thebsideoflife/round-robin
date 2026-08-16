@@ -108,7 +108,7 @@ export async function loadScope(
     const { data: taskRows, error: tErr } = await supabase
       .from("tasks")
       .select(
-        "id, clinic_id, source, source_id, report_id, name, description, theme, owner_id, due_date, status, escalation_level, priority, safety_related, closed_at, created_at",
+        "id, clinic_id, source, source_id, report_id, name, description, theme, owner_id, due_date, status, escalation_level, priority, safety_related, closed_at, closed_by, validated_by, validated_at, department_id, assignment_note, created_at",
       )
       .in("clinic_id", clinicIds.length ? clinicIds : ["00000000-0000-0000-0000-000000000000"]);
     if (tErr) throw new Error(tErr.message);

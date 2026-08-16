@@ -1,5 +1,6 @@
 import type { EscalationLevel, Task, TaskPriority } from "@/data/types";
 import { daysBetween, isOpenStatus } from "./time";
+import { DEFAULT_ESCALATION_SETTINGS, type EscalationSettings } from "./policy";
 
 export interface EscalationSuggestion {
   level: EscalationLevel;
@@ -13,14 +14,26 @@ export interface SuggestionInput {
   createdAt: string;
   clinicId: string;
   allTasks: Task[];
+  /** Division thresholds. Falls back to the system defaults when absent. */
+  settings?: EscalationSettings;
 }
 
 export function suggestEscalation(input: SuggestionInput): EscalationSuggestion {
   const reasons: string[] = [];
   let rank = 0; // 0 manager, 1 director, 2 executive
 
+  const cfg = input.settings ?? DEFAULT_ESCALATION_SETTINGS;
   const age = daysBetween(input.createdAt);
   const urgent = input.safetyRelated || input.priority === "Critical";
+
+  // Some themes are handled in another system entirely and shouldn't climb
+  // this ladder. Safety always overrides an exclusion.
+  if (!input.safetyRelated && cfg.excludedThemes.includes(input.theme)) {
+    return {
+      level: "Manager Resolve",
+      reasons: [`${input.theme} is excluded from automatic escalation for this division`],
+    };
+  }
 
   const sameThemeSameClinic = input.allTasks.filter(
     (t) => t.theme === input.theme && t.clinicId === input.clinicId && isOpenStatus(t),
@@ -30,39 +43,39 @@ export function suggestEscalation(input: SuggestionInput): EscalationSuggestion 
   ).size;
 
   // --- Director Review triggers: manager-level work that stalled or spread ---
-  if (age > 45) {
+  if (age > cfg.directorDays) {
     reasons.push(`Open ${age} days without manager-level resolution`);
     rank = Math.max(rank, 1);
   }
-  if (urgent && age > 21) {
+  if (urgent && age > cfg.safetyDirectorDays) {
     reasons.push(
       `${input.safetyRelated ? "Safety concern" : "Critical issue"} still open after ${age} days`,
     );
     rank = Math.max(rank, 1);
   }
-  if (sameThemeSameClinic >= 3) {
+  if (sameThemeSameClinic >= cfg.repeatSameClinic) {
     reasons.push(`${input.theme} open ${sameThemeSameClinic} times at this clinic`);
     rank = Math.max(rank, 1);
   }
-  if (clinicsWithTheme >= 3) {
+  if (clinicsWithTheme >= cfg.spreadClinics) {
     reasons.push(`${input.theme} open across ${clinicsWithTheme} clinics`);
     rank = Math.max(rank, 1);
   }
 
   // --- Executive Review triggers: enterprise-level only ---
-  if (urgent && age > 60) {
+  if (urgent && age > cfg.safetyExecutiveDays) {
     reasons.push(
       `${input.safetyRelated ? "Safety concern" : "Critical issue"} unresolved past 60 days`,
     );
     rank = 2;
   }
-  if (age > 100) {
+  if (age > cfg.executiveDays) {
     reasons.push(`Open ${age} days across two escalation tiers`);
     rank = 2;
   }
 
 
-  if (clinicsWithTheme >= 6) {
+  if (clinicsWithTheme >= cfg.enterpriseClinics) {
     reasons.push(`Enterprise pattern: ${input.theme} open across ${clinicsWithTheme} clinics`);
     rank = 2;
   }

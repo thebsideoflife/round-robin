@@ -326,3 +326,51 @@ export const createTasksFromOpportunity = createServerFn({ method: "POST" })
       skipped: data.actions.length - fresh.length,
     };
   });
+
+/**
+ * Mark an action item done.
+ *
+ * Deliberately does not set status to "closed". The owner is claiming the work
+ * is finished; the item moves to Pending validation and stays on the list —
+ * including in the next round at that clinic — until someone else confirms it.
+ */
+export const closeTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z.object({ id: z.string().uuid(), note: z.string().max(500).optional() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("close_task", {
+      _task_id: data.id,
+      _note: data.note ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });
+
+/**
+ * Confirm or reject a claimed fix.
+ *
+ * Can happen at any time — it does not have to wait for a formal round.
+ * The database refuses self-confirmation.
+ */
+export const validateTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) =>
+    z
+      .object({
+        id: z.string().uuid(),
+        confirmed: z.boolean(),
+        note: z.string().max(500).optional(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.rpc("validate_task", {
+      _task_id: data.id,
+      _confirmed: data.confirmed,
+      _note: data.note ?? null,
+    });
+    if (error) throw new Error(error.message);
+    return { ok: true as const };
+  });

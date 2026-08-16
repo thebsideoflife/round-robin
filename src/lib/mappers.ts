@@ -183,6 +183,11 @@ export interface TaskRow {
   priority: string;
   safety_related: boolean | null;
   closed_at: string | null;
+  closed_by?: string | null;
+  validated_by?: string | null;
+  validated_at?: string | null;
+  department_id?: string | null;
+  assignment_note?: string | null;
   created_at: string;
 }
 
@@ -204,6 +209,11 @@ export function mapTask(r: TaskRow): Task {
     safetyRelated: !!r.safety_related,
     createdAt: r.created_at,
     closedAt: r.closed_at ?? undefined,
+    closedBy: r.closed_by ?? undefined,
+    validatedBy: r.validated_by ?? undefined,
+    validatedAt: r.validated_at ?? undefined,
+    departmentId: r.department_id ?? undefined,
+    assignmentNote: r.assignment_note ?? undefined,
     validationHistory: [],
   };
 }

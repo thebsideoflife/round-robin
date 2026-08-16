@@ -41,6 +41,7 @@ import {
 import { allowedEscalationLevels, suggestEscalation } from "@/lib/domain/escalation";
 import { isOpenStatus } from "@/lib/domain/time";
 import { assignmentCandidates } from "@/lib/domain/org";
+import { allowedPriorities, defaultDueDays } from "@/lib/domain/policy";
 import { summarizeRound } from "@/lib/ai.functions";
 import { cn } from "@/lib/utils";
 
@@ -110,6 +111,8 @@ interface DraftTask {
   theme: string;
   safetyRelated: boolean;
   dueInDays: number;
+  /** Set once someone picks a date by hand, so priority stops overriding it. */
+  dueTouched?: boolean;
   ownerId?: string;
   overrideLevel?: EscalationLevel;
   overrideReason: string;
@@ -133,7 +136,7 @@ function newDraft(): DraftTask {
     priority: "Medium",
     theme: THEMES[0],
     safetyRelated: false,
-    dueInDays: 14,
+    dueInDays: defaultDueDays("Medium"),
     overrideReason: "",
   };
 }
@@ -149,7 +152,7 @@ function newDraft(): DraftTask {
 function NewRound() {
   const search = Route.useSearch();
   const navigate = useNavigate();
-  const { scope, data, graph, currentUser, addRound, addTask, updateTaskStatus, today } =
+  const { scope, data, graph, currentUser, addRound, addTask, updateTaskStatus, today, settingsForClinic } =
     useStore();
 
   const [step, setStep] = useState(0);
@@ -255,11 +258,26 @@ function NewRound() {
       createdAt: today.toISOString(),
       clinicId,
       allTasks: data.tasks,
+      // Thresholds are set per division, so the same issue can escalate on a
+      // different clock depending on where it was raised.
+      settings: settingsForClinic(clinicId),
     });
   }
 
   const updateDraft = (key: string, patch: Partial<DraftTask>) =>
-    setDrafts((d) => d.map((x) => (x.key === key ? { ...x, ...patch } : x)));
+    setDrafts((d) =>
+      d.map((x) => {
+        if (x.key !== key) return x;
+        const next = { ...x, ...patch };
+        // Priority drives the clock. Once someone picks a date themselves we
+        // stop overriding it, so a deliberate choice isn't silently undone.
+        if (patch.priority && !x.dueTouched) {
+          next.dueInDays = defaultDueDays(patch.priority);
+        }
+        if (patch.dueInDays !== undefined) next.dueTouched = true;
+        return next;
+      }),
+    );
 
   async function submit() {
     if (!whoComplete || !hasContent) {
@@ -784,7 +802,7 @@ function DraftCard({
   onChange: (patch: Partial<DraftTask>) => void;
   onRemove: () => void;
 }) {
-  const { graph } = useStore();
+  const { graph, currentUser } = useStore();
   const level = draft.overrideLevel ?? suggestion.level;
   // Ownership options are ranked by the org graph: the person accountable at
   // this escalation tier for this clinic comes first and is pre-selected.
@@ -862,9 +880,9 @@ function DraftCard({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {(["Low", "Medium", "High", "Critical"] as TaskPriority[]).map((p) => (
+              {allowedPriorities(currentUser.role).map((p) => (
                 <SelectItem key={p} value={p}>
-                  {p}
+                  {p} · {defaultDueDays(p)} days
                 </SelectItem>
               ))}
             </SelectContent>
@@ -880,9 +898,9 @@ function DraftCard({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[3, 7, 14, 30, 60].map((d) => (
+              {[3, 7, 14, 30, 60, 90].map((d) => (
                 <SelectItem key={d} value={String(d)}>
-                  {d} days
+                  {d} days{d === defaultDueDays(draft.priority) ? " · standard" : ""}
                 </SelectItem>
               ))}
             </SelectContent>
