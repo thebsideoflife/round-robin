@@ -39,7 +39,11 @@ export async function loadScope(
           ? "director"
           : roles.includes("admin")
             ? "cao"
-            : "manager";
+            : roles.includes("manager")
+              ? "manager"
+              : roles.includes("coordinator")
+                ? "coordinator"
+                : "manager";
 
     const currentUser: Person = {
       id: userId,

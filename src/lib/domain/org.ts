@@ -28,10 +28,11 @@ import { daysBetween, isOpenStatus, isOverdue } from "./time";
 import { bandFor, clinicHealth } from "./health";
 
 export const ROLE_RANK: Record<RoleKey, number> = {
-  manager: 0,
-  director: 1,
-  executive_director: 2,
-  cao: 3,
+  coordinator: 0,
+  manager: 1,
+  director: 2,
+  executive_director: 3,
+  cao: 4,
 };
 
 /** Which clinic field names the accountable person at each escalation tier. */
@@ -131,7 +132,9 @@ function buildOrgGraphUncached(data: AppData): OrgGraph {
   const clinicsOwnedBy = (person: Person): Clinic[] => {
     if (person.role === "cao") return data.clinics;
     const field = (
-      person.role === "manager"
+      person.role === "coordinator"
+        ? "coordinatorId"
+        : person.role === "manager"
         ? "managerId"
         : person.role === "director"
           ? "directorId"
@@ -144,7 +147,11 @@ function buildOrgGraphUncached(data: AppData): OrgGraph {
     if (person.role === "cao") return data.clinics;
     const ids = new Set<string>([person.id, ...subtree(person.id).map((p) => p.id)]);
     return data.clinics.filter(
-      (c) => ids.has(c.managerId) || ids.has(c.directorId) || ids.has(c.executiveDirectorId),
+      (c) =>
+        (!!c.coordinatorId && ids.has(c.coordinatorId)) ||
+        ids.has(c.managerId) ||
+        ids.has(c.directorId) ||
+        ids.has(c.executiveDirectorId),
     );
   };
 
@@ -332,6 +339,7 @@ export function assignmentCandidates(
   };
 
   push(clinic.managerId, `Manager · ${clinic.name}`);
+  push(clinic.coordinatorId, `Office Coordinator · ${clinic.name}`);
   push(clinic.directorId, `Director · ${clinic.division ?? "division"}`);
   push(clinic.executiveDirectorId, `Executive Director · ${clinic.region ?? "region"}`);
   for (const p of graph.chainUp(clinic.managerId)) {

@@ -15,10 +15,17 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
  * database rather than in this file.
  */
 
-const RoleSchema = z.enum(["admin", "cao", "executive_director", "director", "manager"]);
+const RoleSchema = z.enum([
+  "admin",
+  "cao",
+  "executive_director",
+  "director",
+  "manager",
+  "coordinator",
+]);
 export type AppRole = z.infer<typeof RoleSchema>;
 
-const ClinicRoleSchema = z.enum(["manager", "director", "executive_director"]);
+const ClinicRoleSchema = z.enum(["coordinator", "manager", "director", "executive_director"]);
 
 export interface DirectoryUser {
   userId: string;

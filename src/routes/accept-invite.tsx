@@ -25,6 +25,7 @@ const ROLE_LABELS: Record<string, string> = {
   executive_director: "Executive Director",
   director: "Director",
   manager: "Manager",
+  coordinator: "Office Coordinator",
 };
 
 function AcceptInvitePage() {

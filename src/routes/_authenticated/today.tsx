@@ -74,7 +74,12 @@ function TodayPage() {
   // named owner for that specific clinic. Not "all escalations in my scope" —
   // the ones actually waiting on them.
   const mine = open
-    .filter((t) => t.escalation !== "Manager Resolve" || currentUser.role === "manager")
+    .filter(
+      (t) =>
+        t.escalation !== "Manager Resolve" ||
+        currentUser.role === "manager" ||
+        currentUser.role === "coordinator",
+    )
     .filter((t) => ownerAtLevel(graph, t, t.escalation)?.id === currentUser.id)
     .sort(byUrgency)
     .slice(0, 6);

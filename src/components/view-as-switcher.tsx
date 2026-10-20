@@ -12,7 +12,7 @@ import {
 import { ROLE_LABELS, type RoleKey } from "@/data/types";
 import { useStore } from "@/lib/store";
 
-const GROUP_ORDER: RoleKey[] = ["executive_director", "director", "manager", "cao"];
+const GROUP_ORDER: RoleKey[] = ["executive_director", "director", "manager", "coordinator", "cao"];
 
 /** Lets an admin/CAO preview the app exactly as another leader sees it. */
 export function ViewAsSwitcher({ className }: { className?: string }) {

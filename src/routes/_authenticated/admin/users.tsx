@@ -62,8 +62,15 @@ export const Route = createFileRoute("/_authenticated/admin/users")({
   component: AdminUsersPage,
 });
 
-const ROLES: AppRole[] = ["admin", "cao", "executive_director", "director", "manager"];
-const CLINIC_ROLES = ["manager", "director", "executive_director"] as const;
+const ROLES: AppRole[] = [
+  "admin",
+  "cao",
+  "executive_director",
+  "director",
+  "manager",
+  "coordinator",
+];
+const CLINIC_ROLES = ["coordinator", "manager", "director", "executive_director"] as const;
 
 const ROLE_COPY: Record<AppRole, string> = {
   admin: "Everything, including this screen and other people's passwords",
@@ -71,6 +78,7 @@ const ROLE_COPY: Record<AppRole, string> = {
   executive_director: "Sees their division",
   director: "Sees the clinics under their managers",
   manager: "Sees the clinics they run",
+  coordinator: "Sees the clinics they coordinate, under their manager",
 };
 
 const FILTERS = ["Everyone", "Needs a role", "Managers", "Directors", "Admins"] as const;
@@ -102,7 +110,7 @@ function AdminUsersPage() {
         case "Needs a role":
           return u.roles.length === 0 || u.isPending;
         case "Managers":
-          return u.roles.includes("manager");
+          return u.roles.includes("manager") || u.roles.includes("coordinator");
         case "Directors":
           return u.roles.includes("director") || u.roles.includes("executive_director");
         case "Admins":
@@ -121,7 +129,7 @@ function AdminUsersPage() {
           case "Needs a role":
             return u.roles.length === 0 || u.isPending;
           case "Managers":
-            return u.roles.includes("manager");
+            return u.roles.includes("manager") || u.roles.includes("coordinator");
           case "Directors":
             return u.roles.includes("director") || u.roles.includes("executive_director");
           case "Admins":

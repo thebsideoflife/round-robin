@@ -29,7 +29,7 @@ export interface ClinicRow {
 export interface AssignmentRow {
   clinic_id: string;
   user_id: string;
-  role: "manager" | "director" | "executive_director";
+  role: "coordinator" | "manager" | "director" | "executive_director";
 }
 
 export interface ProfileRow {
@@ -48,10 +48,11 @@ const ROLE_RANK: Record<string, RoleKey> = {
   executive_director: "executive_director",
   director: "director",
   manager: "manager",
+  coordinator: "coordinator",
 };
 
 function primaryRole(roles: string[]): RoleKey {
-  for (const r of ["cao", "executive_director", "director", "manager"]) {
+  for (const r of ["cao", "executive_director", "director", "manager", "coordinator"]) {
     if (roles.includes(r)) return ROLE_RANK[r];
   }
   return "manager";
@@ -71,11 +72,20 @@ export function mapPeople(
     else rolesByUser.set(r.user_id, [r.role]);
   }
 
-  // managerId: a manager reports to the director co-assigned to one of their
-  // clinics; a director reports to the executive co-assigned to one of theirs.
+  // managerId: a coordinator reports to the manager co-assigned to one of their
+  // clinics; a manager reports to the director co-assigned to one of theirs; a
+  // director reports to the executive co-assigned to one of theirs.
+  const managerForCoordinator = new Map<string, string>();
   const directorForManager = new Map<string, string>();
   const execForDirector = new Map<string, string>();
   for (const a of assignments) {
+    if (a.role === "coordinator") {
+      const mgr = assignments.find(
+        (x) => x.clinic_id === a.clinic_id && x.role === "manager",
+      );
+      if (mgr && !managerForCoordinator.has(a.user_id))
+        managerForCoordinator.set(a.user_id, mgr.user_id);
+    }
     if (a.role === "manager") {
       const dir = assignments.find(
         (x) => x.clinic_id === a.clinic_id && x.role === "director",
@@ -103,7 +113,9 @@ export function mapPeople(
       title: p?.title || roleLabel(role),
       role,
       managerId:
-        role === "manager"
+        role === "coordinator"
+          ? managerForCoordinator.get(id)
+          : role === "manager"
           ? directorForManager.get(id)
           : role === "director"
             ? execForDirector.get(id)
@@ -122,6 +134,8 @@ function roleLabel(role: RoleKey) {
       return "Director";
     case "manager":
       return "Manager";
+    case "coordinator":
+      return "Office Coordinator";
   }
 }
 
@@ -139,6 +153,7 @@ export function mapClinics(
       site: r.location ?? "",
       region: r.region ?? "",
       division: r.division ?? "",
+      coordinatorId: find("coordinator"),
       managerId: find("manager") ?? "",
       directorId: find("director") ?? "",
       executiveDirectorId: find("executive_director") ?? "",
