@@ -91,10 +91,11 @@ interface StoreValue {
 const EMPTY_DATA: AppData = { people: [], clinics: [], rounds: [], tasks: [] };
 
 const ROLE_RANK: Record<Person["role"], number> = {
-  manager: 0,
-  director: 1,
-  executive_director: 2,
-  cao: 3,
+  coordinator: 0,
+  manager: 1,
+  director: 2,
+  executive_director: 3,
+  cao: 4,
 };
 
 

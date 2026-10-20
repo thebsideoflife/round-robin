@@ -8,6 +8,7 @@ const RoleSchema = z.enum([
   "executive_director",
   "director",
   "manager",
+  "coordinator",
 ]);
 export type AppRole = z.infer<typeof RoleSchema>;
 

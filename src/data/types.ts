@@ -1,4 +1,4 @@
-export type RoleKey = "manager" | "director" | "executive_director" | "cao";
+export type RoleKey = "coordinator" | "manager" | "director" | "executive_director" | "cao";
 
 export interface Person {
   id: string;
@@ -17,6 +17,8 @@ export interface Clinic {
   site: string;
   region: string;
   division: string;
+  /** Office coordinator for this clinic, if it has one. Reports to the manager. */
+  coordinatorId?: string;
   managerId: string;
   directorId: string;
   executiveDirectorId: string;
@@ -124,6 +126,7 @@ export const THEMES = [
 ] as const;
 
 export const ROLE_LABELS: Record<RoleKey, string> = {
+  coordinator: "Office Coordinator",
   manager: "Manager",
   director: "Director",
   executive_director: "Executive Director",

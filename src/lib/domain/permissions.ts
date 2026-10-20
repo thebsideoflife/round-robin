@@ -63,7 +63,9 @@ export const ESCALATION_ORDER: EscalationLevel[] = [
 ];
 
 export function escalationVisibleTo(role: RoleKey, level: EscalationLevel) {
-  if (role === "manager") return true;
+  // Coordinators work the clinic floor alongside their manager, so they see
+  // every open item for their clinics, the same as the manager does.
+  if (role === "manager" || role === "coordinator") return true;
   if (role === "director") return level !== "Manager Resolve";
   return level === "Executive Review" || level === "Director Review";
 }
