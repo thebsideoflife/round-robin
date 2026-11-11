@@ -144,8 +144,10 @@ export function mapClinics(
   assignments: AssignmentRow[],
 ): Clinic[] {
   return rows.map((r) => {
-    const find = (role: AssignmentRow["role"]) =>
-      assignments.find((a) => a.clinic_id === r.id && a.role === role)?.user_id;
+    const mine = assignments.filter((a) => a.clinic_id === r.id);
+    const all = (role: AssignmentRow["role"]) =>
+      mine.filter((a) => a.role === role).map((a) => a.user_id);
+    const find = (role: AssignmentRow["role"]) => all(role)[0];
     return {
       id: r.id,
       name: r.name,
@@ -157,6 +159,12 @@ export function mapClinics(
       managerId: find("manager") ?? "",
       directorId: find("director") ?? "",
       executiveDirectorId: find("executive_director") ?? "",
+      leaders: {
+        coordinator: all("coordinator"),
+        manager: all("manager"),
+        director: all("director"),
+        executive_director: all("executive_director"),
+      },
       providerCount: r.provider_count ?? 0,
       staffCount: r.staff_count ?? 0,
     } satisfies Clinic;

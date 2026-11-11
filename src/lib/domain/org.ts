@@ -131,28 +131,13 @@ function buildOrgGraphUncached(data: AppData): OrgGraph {
 
   const clinicsOwnedBy = (person: Person): Clinic[] => {
     if (person.role === "cao") return data.clinics;
-    const field = (
-      person.role === "coordinator"
-        ? "coordinatorId"
-        : person.role === "manager"
-        ? "managerId"
-        : person.role === "director"
-          ? "directorId"
-          : "executiveDirectorId"
-    ) as keyof Clinic;
-    return data.clinics.filter((c) => c[field] === person.id);
+    return data.clinics.filter((c) => clinicLeaderIds(c, person.role).includes(person.id));
   };
 
   const clinicsInScope = (person: Person): Clinic[] => {
     if (person.role === "cao") return data.clinics;
     const ids = new Set<string>([person.id, ...subtree(person.id).map((p) => p.id)]);
-    return data.clinics.filter(
-      (c) =>
-        (!!c.coordinatorId && ids.has(c.coordinatorId)) ||
-        ids.has(c.managerId) ||
-        ids.has(c.directorId) ||
-        ids.has(c.executiveDirectorId),
-    );
+    return data.clinics.filter((c) => clinicLeaderIds(c).some((id) => ids.has(id)));
   };
 
   return {
@@ -355,7 +340,32 @@ export function canReassign(actor: Person, task: Task, graph: OrgGraph): boolean
   const clinic = graph.clinic(task.clinicId);
   if (!clinic) return false;
   const ids = new Set([actor.id, ...graph.subtree(actor.id).map((p) => p.id)]);
-  return (
-    ids.has(clinic.managerId) || ids.has(clinic.directorId) || ids.has(clinic.executiveDirectorId)
+  return (["manager", "director", "executive_director"] as const).some((role) =>
+    clinicLeaderIds(clinic, role).some((id) => ids.has(id)),
   );
+}
+
+const SINGULAR_FIELD = {
+  coordinator: "coordinatorId",
+  manager: "managerId",
+  director: "directorId",
+  executive_director: "executiveDirectorId",
+} as const;
+
+/**
+ * Every person assigned to a clinic — at one tier, or at all tiers when no
+ * role is given. Includes co-leaders (a clinic may have more than one person
+ * in a role), and falls back to the singular primary fields for clinics built
+ * without `leaders`.
+ */
+export function clinicLeaderIds(clinic: Clinic, role?: RoleKey): string[] {
+  if (role === "cao") return [];
+  const roles = role ? [role] : (Object.keys(SINGULAR_FIELD) as (keyof typeof SINGULAR_FIELD)[]);
+  const out = new Set<string>();
+  for (const r of roles) {
+    for (const id of clinic.leaders?.[r] ?? []) out.add(id);
+    const primary = clinic[SINGULAR_FIELD[r]];
+    if (primary) out.add(primary);
+  }
+  return [...out];
 }

@@ -22,6 +22,14 @@ export interface Clinic {
   managerId: string;
   directorId: string;
   executiveDirectorId: string;
+  /**
+   * Everyone assigned to this clinic at each tier. A clinic can have more than
+   * one person in the same role (e.g. co-directors); the singular fields above
+   * hold the primary (earliest-assigned) one for display and default ownership.
+   * Optional so hand-built demo data without it still type-checks; use
+   * `clinicLeaderIds` from `@/lib/domain/org` instead of reading it directly.
+   */
+  leaders?: Partial<Record<Exclude<RoleKey, "cao">, string[]>>;
   providerCount: number;
   staffCount: number;
 }
