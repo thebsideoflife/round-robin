@@ -71,7 +71,9 @@ export function engagement(
 ): EngagementRow[] {
   return managers
     .map((m) => {
-      const mClinics = clinics.filter((c) => c.managerId === m.id);
+      const mClinics = clinics.filter(
+        (c) => c.managerId === m.id || !!c.leaders?.manager?.includes(m.id),
+      );
       const ids = new Set(mClinics.map((c) => c.id));
       const r30 = rounds.filter((r) => ids.has(r.clinicId) && daysBetween(r.date) <= 30);
       const rounded = new Set(r30.map((r) => r.clinicId));

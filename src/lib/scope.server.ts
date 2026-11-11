@@ -68,7 +68,9 @@ export async function loadScope(
     const { data: assignmentRows } = await supabase
       .from("clinic_assignments")
       .select("clinic_id, user_id, role")
-      .in("clinic_id", clinicIds.length ? clinicIds : ["00000000-0000-0000-0000-000000000000"]);
+      .in("clinic_id", clinicIds.length ? clinicIds : ["00000000-0000-0000-0000-000000000000"])
+      // Earliest assignment per role is the clinic's primary leader at that tier.
+      .order("created_at", { ascending: true });
     const assignments = (assignmentRows ?? []) as AssignmentRow[];
 
     // Gather every user that appears in this scope.
